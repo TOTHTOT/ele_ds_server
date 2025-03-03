@@ -15,14 +15,14 @@ static int32_t get_weather(struct weather_info *weather,
                            time_t start_time,
                            uint32_t cityid)
 {
-    if (weather == NULL)
+    if (weather == NULL || weathersize > WEATHER_DAY_MAX || cityid == 0)
     {
-        ERROR_PRINT("Invalid argument: weather or city is NULL"); // 记录错误日志
+        ERROR_PRINT("Invalid argument: weather or city is 0 or weathersize too big"); // 记录错误日志
         return -EINVAL; // Invalid argument
     }
-    char day7_api[sizeof(WEATHER_API_HTTP) + 10] = {0}; // uint32_t 最大值为10位数
-    sprintf(day7_api, "%s%d", WEATHER_API_HTTP, cityid); // 拼接API
-    INFO_PRINT("api: %s", day7_api); // 记录调试日志
+    char day7_api[sizeof(WEATHER_API_7D_HTTP) + 10] = {0}; // uint32_t 最大值为10位数
+    sprintf(day7_api, "%s%d", WEATHER_API_7D_HTTP, cityid);
+    INFO_PRINT("api: %s", day7_api); 
     return 0;
 }
 
