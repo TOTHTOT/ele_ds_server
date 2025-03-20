@@ -35,22 +35,19 @@ int32_t print_hex(const char *data, uint32_t size)
 }
 
 /**
- * @description: 通过url获取数据
- * @param {char} *url
- * @param {uint32_t} urlsize
- * @param {char} *data
- * @param {  } uint32_t
- * @param {  } size_t
- * @param {size_t} size
- * @param {size_t} nmemb
- * @param {void} *userdata
- * @return {*}
+ * @description: 通过url获取数据, 返回json数据
+ * @param {char} *url 获取数据的url
+ * @param {uint32_t} urlsize url大小
+ * @param {char} *data 存放数据的缓冲区
+ * @param {uint32_t} datasize 暂时没用到
+ * @param {curl_cb} write_callback 回调函数, 用于处理获取到的数据
+ * @return {int32_t} 0: 成功, 其他: 失败
  */
 int32_t get_data_byurl(char *url,
-                              uint32_t urlsize,
-                              char *data,
-                              uint32_t datasize,
-                              curl_cb write_callback)
+                       uint32_t urlsize,
+                       char *data,
+                       uint32_t datasize,
+                       curl_cb write_callback)
 {
     if (url == NULL || urlsize == 0 || data == NULL || datasize == 0)
     {
