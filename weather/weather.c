@@ -1,6 +1,10 @@
 #include "weather.h"
 #include "common.h"
 #include "log.h"
+#include <cjson/cJSON.h>
+
+static void parse_7day_weather_json(const char *json_string);
+
 
 /**
  * @description: 回调函数，用于处理获取天气的json数据
@@ -62,5 +66,72 @@ int32_t get_weather(struct weather_info *weather,
         return -2;
     }
     INFO_PRINT("weather_json: %s", weather_json); // 打印获取到的json数据
+    parse_7day_weather_json(weather_json); // 解析json数据
+    return 0;
+}
+
+static int8_t parse_7day_weather_json(const char *json_string, struct weather_info *weather, uint32_t weathersize)
+{
+    if (json_string == NULL || weather == NULL || weathersize > WEATHER_DAY_MAX)
+    {
+        ERROR_PRINT("Invalid argument: json_string is NULL or weather is NULL or weathersize too big");
+        return -1;
+    }
+    // 解析 JSON 字符串
+    cJSON *root = cJSON_Parse(json_string);
+    if (root == NULL)
+    {
+        ERROR_PRINT(stderr, "JSON 解析失败\n");
+        return -2;
+    }
+
+    // 提取 code 字段
+    cJSON *code = cJSON_GetObjectItemCaseSensitive(root, "code");
+    if (cJSON_IsString(code))
+    {
+        INFO_PRINT("code: %s\n", code->valuestring);
+    }
+
+    // 提取 updateTime 字段
+    cJSON *update_time = cJSON_GetObjectItemCaseSensitive(root, "updateTime");
+    if (cJSON_IsString(update_time))
+    {
+        INFO_PRINT("updateTime: %s\n", update_time->valuestring);
+    }
+
+    // 提取 daily 数组
+    cJSON *daily = cJSON_GetObjectItemCaseSensitive(root, "daily");
+    if (cJSON_IsArray(daily))
+    {
+        cJSON *day;
+        cJSON_ArrayForEach(day, daily)
+        {
+            // 提取 fxDate 字段
+            cJSON *fx_date = cJSON_GetObjectItemCaseSensitive(day, "fxDate");
+            if (cJSON_IsString(fx_date))
+            {
+                INFO_PRINT("fxDate: %s\n", fx_date->valuestring);
+            }
+
+            // 提取 tempMax 和 tempMin 字段
+            cJSON *temp_max = cJSON_GetObjectItemCaseSensitive(day, "tempMax");
+            cJSON *temp_min = cJSON_GetObjectItemCaseSensitive(day, "tempMin");
+            if (cJSON_IsString(temp_max) && cJSON_IsString(temp_min))
+            {
+                INFO_PRINT("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
+            }
+
+            // 提取 textDay 和 textNight 字段
+            cJSON *text_day = cJSON_GetObjectItemCaseSensitive(day, "textDay");
+            cJSON *text_night = cJSON_GetObjectItemCaseSensitive(day, "textNight");
+            if (cJSON_IsString(text_day) && cJSON_IsString(text_night))
+            {
+                INFO_PRINT("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
+            }
+        }
+    }
+
+    // 释放 JSON 对象
+    cJSON_Delete(root);
     return 0;
 }

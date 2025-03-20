@@ -17,10 +17,11 @@ OBJS = $(patsubst %.c, $(OBJDIR)/%.o, $(SRCS))
 CC = gcc
 
 # 编译选项
+WEATHER_API_KEY = "e7d95a70480a4d6c9140378d9d100d42"
 CFLAGS = -Wall -Wextra -O2 -DWEATHER_API_KEY=\"$(WEATHER_API_KEY)\" -std=c99
 
 # 链接选项
-LDFLAGS = -lcurl
+LDFLAGS = -lcurl -lcjson
 
 # 头文件目录
 INCLUDES = -I. -Icommon -Iweather
