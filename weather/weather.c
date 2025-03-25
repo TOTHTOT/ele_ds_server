@@ -3,7 +3,7 @@
 #include "log.h"
 #include <cjson/cJSON.h>
 
-static void parse_7day_weather_json(const char *json_string);
+static int8_t parse_7day_weather_json(const char *json_string, struct weather_info *weather, uint32_t weathersize);
 
 
 /**
@@ -16,7 +16,7 @@ static void parse_7day_weather_json(const char *json_string);
  */
 size_t get_weather_cb(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    size_t total_size = size * nmemb;
+    uint32_t total_size = size * nmemb;
     // print_hex(ptr, total_size); // 打印数据到控制台
     if (total_size > 4096)
     {
@@ -65,8 +65,8 @@ int32_t get_weather(struct weather_info *weather,
         ERROR_PRINT("get_data_byurl() failed: %d", ret);
         return -2;
     }
-    INFO_PRINT("weather_json: %s", weather_json); // 打印获取到的json数据
-    parse_7day_weather_json(weather_json); // 解析json数据
+    // INFO_PRINT("weather_json: %s", weather_json); // 打印获取到的json数据
+    parse_7day_weather_json(weather_json, weather, weathersize); // 解析json数据
     return 0;
 }
 
@@ -81,7 +81,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     cJSON *root = cJSON_Parse(json_string);
     if (root == NULL)
     {
-        ERROR_PRINT(stderr, "JSON 解析失败\n");
+        ERROR_PRINT("JSON 解析失败\n");
         return -2;
     }
 
@@ -90,6 +90,14 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     if (cJSON_IsString(code))
     {
         INFO_PRINT("code: %s\n", code->valuestring);
+    }
+
+    // code 不对说明获取失败
+    if (strcmp(code->valuestring, "200") != 0)
+    {
+        ERROR_PRINT("code is not 200: %s", code->valuestring);
+        cJSON_Delete(root);
+        return -3;
     }
 
     // 提取 updateTime 字段
@@ -110,6 +118,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             cJSON *fx_date = cJSON_GetObjectItemCaseSensitive(day, "fxDate");
             if (cJSON_IsString(fx_date))
             {
+                strcpy(weather->fxDate, fx_date->valuestring);
                 INFO_PRINT("fxDate: %s\n", fx_date->valuestring);
             }
 
@@ -118,6 +127,8 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             cJSON *temp_min = cJSON_GetObjectItemCaseSensitive(day, "tempMin");
             if (cJSON_IsString(temp_max) && cJSON_IsString(temp_min))
             {
+                weather->tempMax = atoi(temp_max->valuestring);
+                weather->tempMin = atoi(temp_min->valuestring);
                 INFO_PRINT("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
             }
 
@@ -126,6 +137,8 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             cJSON *text_night = cJSON_GetObjectItemCaseSensitive(day, "textNight");
             if (cJSON_IsString(text_day) && cJSON_IsString(text_night))
             {
+                strcpy(weather->textDay, text_day->valuestring);
+                strcpy(weather->textNight, text_night->valuestring);
                 INFO_PRINT("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
             }
         }
