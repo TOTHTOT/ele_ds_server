@@ -6,3 +6,7 @@
 
  - curl `sudo apt-get install libcurl4-openssl-dev`
    - 如果安装不了就手动安装`./resource/libcjson-dev_1.7.15-1_amd64.deb`和`libcjson1_1.7.15-1_amd64.deb`.
+
+## 终端连接服务器说明
+
+ - 服务器运行`frpc`后开启代理且关闭认证, 终端使用tcp连接服务器, 暂时使用`24680`端口.
