@@ -70,6 +70,13 @@ int32_t get_weather(struct weather_info *weather,
     return 0;
 }
 
+/**
+ * @description: 解析7天天气json数据
+ * @param {char} *json_string json数据
+ * @param {weather_info} *weather 天气数据
+ * @param {uint32_t} weathersize 天气数据大小
+ * @return {int8_t} 0:成功 -1:无效参数 -2:JSON解析失败 -3:code不为200
+ */
 static int8_t parse_7day_weather_json(const char *json_string, struct weather_info *weather, uint32_t weathersize)
 {
     if (json_string == NULL || weather == NULL || weathersize > WEATHER_DAY_MAX)
