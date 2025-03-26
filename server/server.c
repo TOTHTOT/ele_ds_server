@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-26 11:15:14
+ * @LastEditTime: 2025-03-26 11:22:58
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -63,6 +63,80 @@ int server_init(server_t *server)
 
     return 0;
 }
+/**
+ * @description: 处理服务器事件
+ * @param {server_t} *server 服务器
+ * @return {int8_t} 0 成功; -1 失败
+ */
+static int8_t server_events(server_t *server)
+{
+    struct sockaddr_in client_addr;
+    int32_t client_sockfd;
+    socklen_t addr_len = sizeof(client_addr);
+    client_sockfd = accept(server->server_sockfd, (struct sockaddr *)&client_addr, &addr_len);
+    if (client_sockfd == -1)
+    {
+        perror("accept failed");
+        return -1;
+    }
+    // 查找一个空槽位来存储新客户端
+    if (server->client_count <= MAX_CLIENTNUM)
+    {
+        for (int i = 1; i <= MAX_CLIENTNUM; i++)
+        {
+            if (server->fds[i].fd == -1)
+            {
+                server->fds[i].fd = client_sockfd;
+                server->fds[i].events = POLLIN;
+                server->client_count++;
+                INFO_PRINT("New client connected: %d\n", client_sockfd);
+                break;
+            }
+        }
+    }
+    else
+    {
+        INFO_PRINT("Max client limit reached, rejecting connection\n");
+        close(client_sockfd);
+    }
+    return 0;
+}
+
+/**
+ * @description: 处理客户端事件
+ * @param {server_t} *server 服务器
+ * @param {int32_t} i 客户端索引
+ * @return {int8_t} 0 成功; -1 失败
+ */
+static int8_t client_events(server_t *server, int32_t i)
+{
+    if (server == NULL || i < 0 || i >= MAX_CLIENTNUM)
+    {
+        return -1;
+    }
+    
+    char buffer[MAX_MSGLEN];
+    int32_t valread = read(server->fds[i].fd, buffer, sizeof(buffer));
+    if (valread == 0)
+    {
+        // 客户端断开连接
+        INFO_PRINT("Client %d disconnected\n", server->fds[i].fd);
+        close(server->fds[i].fd);
+        server->fds[i].fd = -1; // 将该客户端从pollfd数组中移除
+        server->client_count--;
+    }
+    else
+    {
+        // 处理接收到的消息
+        buffer[valread] = '\0';
+        INFO_PRINT("Received message: %s\n", buffer);
+        // 回复客户端
+        char reply[MAX_MSGLEN] = {0};
+        sprintf(reply, "Server received: %s", buffer);
+        send(server->fds[i].fd, reply, strlen(reply), 0);
+    }
+    return 0;
+}
 
 /**
  * @description: 处理客户端连接
@@ -72,8 +146,6 @@ int server_init(server_t *server)
 void server_handle_clients(server_t *server)
 {
     struct pollfd *curfd;
-    int client_sockfd;
-    char buffer[MAX_MSGLEN];
     int valread;
 
     int ret = poll(server->fds, server->client_count + 1, -1); // 阻塞等待事件
@@ -87,57 +159,12 @@ void server_handle_clients(server_t *server)
         // 处理服务器事件, 检查server_sockfd是否有新的连接请求
         if (server->fds[i].fd == server->server_sockfd && server->fds[i].revents & POLLIN)
         {
-            struct sockaddr_in client_addr;
-            socklen_t addr_len = sizeof(client_addr);
-            client_sockfd = accept(server->server_sockfd, (struct sockaddr *)&client_addr, &addr_len);
-            if (client_sockfd == -1)
-            {
-                perror("accept failed");
-                return;
-            }
-            // 查找一个空槽位来存储新客户端
-            if (server->client_count <= MAX_CLIENTNUM)
-            {
-                for (int i = 1; i <= MAX_CLIENTNUM; i++)
-                {
-                    if (server->fds[i].fd == -1)
-                    {
-                        server->fds[i].fd = client_sockfd;
-                        server->fds[i].events = POLLIN;
-                        server->client_count++;
-                        INFO_PRINT("New client connected: %d\n", client_sockfd);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                INFO_PRINT("Max client limit reached, rejecting connection\n");
-                close(client_sockfd);
-            }
+            server_events(server);
         }
         // 处理客户端事件
         else if (server->fds[i].revents & POLLIN)
         {
-            valread = read(server->fds[i].fd, buffer, sizeof(buffer));
-            if (valread == 0)
-            {
-                // 客户端断开连接
-                INFO_PRINT("Client %d disconnected\n", server->fds[i].fd);
-                close(server->fds[i].fd);
-                server->fds[i].fd = -1; // 将该客户端从pollfd数组中移除
-                server->client_count--;
-            }
-            else
-            {
-                // 处理接收到的消息
-                buffer[valread] = '\0';
-                INFO_PRINT("Received message: %s\n", buffer);
-                // 回复客户端
-                char reply[MAX_MSGLEN] = {0};
-                sprintf(reply, "Server received: %s", buffer);
-                send(server->fds[i].fd, reply, strlen(reply), 0);
-            }
+            client_events(server, i);
         }
         else
         {
