@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-26 11:07:40
+ * @LastEditTime: 2025-03-26 11:15:14
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -58,7 +58,7 @@ int server_init(server_t *server)
             server->fds[i].fd = -1;         // 初始化客户端socket为-1
         }
         server->fds[i].events = POLLIN; // 设置监听POLLIN事件
-        printf("fds[%d].fd = %d\n", i, server->fds[i].fd);
+        // INFO_PRINT("fds[%d].fd = %d\n", i, server->fds[i].fd);
     }
 
     return 0;
@@ -69,7 +69,6 @@ int server_init(server_t *server)
  * @param {server_t} *server
  * @return {*}
  */
-// 处理客户端连接
 void server_handle_clients(server_t *server)
 {
     struct pollfd *curfd;
@@ -78,15 +77,12 @@ void server_handle_clients(server_t *server)
     int valread;
 
     int ret = poll(server->fds, server->client_count + 1, -1); // 阻塞等待事件
-    printf("count = %d\n", server->client_count);
     if (ret == -1)
     {
         perror("poll failed");
         return;
     }
-    printf("poll returned\n");
-    usleep(100 * 1000);
-    for (int32_t i = 0; i < MAX_CLIENTNUM; i++)
+    for (int32_t i = 0; i <= MAX_CLIENTNUM; i++)
     {
         // 处理服务器事件, 检查server_sockfd是否有新的连接请求
         if (server->fds[i].fd == server->server_sockfd && server->fds[i].revents & POLLIN)
@@ -99,25 +95,24 @@ void server_handle_clients(server_t *server)
                 perror("accept failed");
                 return;
             }
-            INFO_PRINT("New client connected: %d\n", client_sockfd);
             // 查找一个空槽位来存储新客户端
-            if (server->client_count < MAX_CLIENTNUM)
+            if (server->client_count <= MAX_CLIENTNUM)
             {
-                for (int i = 1; i < MAX_CLIENTNUM; i++)
+                for (int i = 1; i <= MAX_CLIENTNUM; i++)
                 {
                     if (server->fds[i].fd == -1)
                     {
                         server->fds[i].fd = client_sockfd;
                         server->fds[i].events = POLLIN;
                         server->client_count++;
-                        printf("New client connected: %d\n", client_sockfd);
+                        INFO_PRINT("New client connected: %d\n", client_sockfd);
                         break;
                     }
                 }
             }
             else
             {
-                printf("Max client limit reached, rejecting connection\n");
+                INFO_PRINT("Max client limit reached, rejecting connection\n");
                 close(client_sockfd);
             }
         }
@@ -128,7 +123,7 @@ void server_handle_clients(server_t *server)
             if (valread == 0)
             {
                 // 客户端断开连接
-                printf("Client %d disconnected\n", server->fds[i].fd);
+                INFO_PRINT("Client %d disconnected\n", server->fds[i].fd);
                 close(server->fds[i].fd);
                 server->fds[i].fd = -1; // 将该客户端从pollfd数组中移除
                 server->client_count--;
@@ -137,7 +132,7 @@ void server_handle_clients(server_t *server)
             {
                 // 处理接收到的消息
                 buffer[valread] = '\0';
-                printf("Received message: %s\n", buffer);
+                INFO_PRINT("Received message: %s\n", buffer);
                 // 回复客户端
                 char reply[MAX_MSGLEN] = {0};
                 sprintf(reply, "Server received: %s", buffer);
@@ -157,13 +152,13 @@ void server_handle_clients(server_t *server)
 #if 1
 void signal_handler(int sig)
 {
-    printf("Signal %d received, exiting...\n", sig);
+    INFO_PRINT("Signal %d received, exiting...\n", sig);
     exit(0);
 }
 // 服务器运行主函数
 void server_run(server_t *server)
 {
-    printf("Server running\n");
+    INFO_PRINT("Server running\n");
     while (1)
     {
         server_handle_clients(server);
@@ -178,7 +173,7 @@ int main()
         fprintf(stderr, "Server initialization failed\n");
         return -1;
     }
-    printf("Server initialized\n");
+    INFO_PRINT("Server initialized\n");
     server_run(&server);
     return 0;
 }
