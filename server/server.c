@@ -2,12 +2,26 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-26 11:22:58
+ * @LastEditTime: 2025-03-26 15:45:47
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
 #include "server.h"
 #include "../log.h"
+
+void set_nonblocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0); // 获取当前 flags
+    if (flags == -1)
+    {
+        perror("fcntl F_GETFL failed");
+        return;
+    }
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) // 设置非阻塞
+    {
+        perror("fcntl F_SETFL O_NONBLOCK failed");
+    }
+}
 
 /**
  * @description: 初始化服务器
@@ -16,7 +30,7 @@
  * @return {*}
  */
 // 初始化服务器
-int server_init(server_t *server)
+int32_t server_init(server_t *server, uint16_t port)
 {
     struct sockaddr_in server_addr;
 
@@ -26,11 +40,11 @@ int server_init(server_t *server)
         perror("socket creation failed");
         return -1;
     }
-
+    set_nonblocking(server->server_sockfd); // 设置非阻塞这样在poll里面就不会阻塞
     // 配置服务器地址
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_port = htons(port);
 
     // 绑定端口
     if (bind(server->server_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
@@ -76,8 +90,18 @@ static int8_t server_events(server_t *server)
     client_sockfd = accept(server->server_sockfd, (struct sockaddr *)&client_addr, &addr_len);
     if (client_sockfd == -1)
     {
-        perror("accept failed");
-        return -1;
+        if (errno == EWOULDBLOCK || errno == EAGAIN)
+        {
+            // 没有新的连接, 超时导致的错误
+            return 0;
+        }
+        else
+        {
+
+            ERROR_PRINT("fd = %d", server->server_sockfd);
+            perror("accept failed");
+            return -1;
+        }
     }
     // 查找一个空槽位来存储新客户端
     if (server->client_count <= MAX_CLIENTNUM)
@@ -88,6 +112,7 @@ static int8_t server_events(server_t *server)
             {
                 server->fds[i].fd = client_sockfd;
                 server->fds[i].events = POLLIN;
+                set_nonblocking(client_sockfd);
                 server->client_count++;
                 INFO_PRINT("New client connected: %d\n", client_sockfd);
                 break;
@@ -114,8 +139,8 @@ static int8_t client_events(server_t *server, int32_t i)
     {
         return -1;
     }
-    
-    char buffer[MAX_MSGLEN];
+
+    char buffer[MAX_MSGLEN] = {0};
     int32_t valread = read(server->fds[i].fd, buffer, sizeof(buffer));
     if (valread == 0)
     {
@@ -129,7 +154,7 @@ static int8_t client_events(server_t *server, int32_t i)
     {
         // 处理接收到的消息
         buffer[valread] = '\0';
-        INFO_PRINT("Received message: %s\n", buffer);
+        INFO_PRINT("i = %d, fd = %d, Received message: %s\n", i,  server->fds[i].fd, buffer);
         // 回复客户端
         char reply[MAX_MSGLEN] = {0};
         sprintf(reply, "Server received: %s", buffer);
@@ -145,10 +170,7 @@ static int8_t client_events(server_t *server, int32_t i)
  */
 void server_handle_clients(server_t *server)
 {
-    struct pollfd *curfd;
-    int valread;
-
-    int ret = poll(server->fds, server->client_count + 1, -1); // 阻塞等待事件
+    int ret = poll(server->fds, server->client_count + 1, 500); // 阻塞等待事件, 超时处理避免不能退出
     if (ret == -1)
     {
         perror("poll failed");
@@ -157,7 +179,7 @@ void server_handle_clients(server_t *server)
     for (int32_t i = 0; i <= MAX_CLIENTNUM; i++)
     {
         // 处理服务器事件, 检查server_sockfd是否有新的连接请求
-        if (server->fds[i].fd == server->server_sockfd && server->fds[i].revents & POLLIN)
+        if (server->fds[i].fd == server->server_sockfd)
         {
             server_events(server);
         }
@@ -170,13 +192,39 @@ void server_handle_clients(server_t *server)
         {
             if (server->fds[i].revents != 0)
             {
-                ERROR_PRINT("Error: pollfd[%d].revents = %#x\n", i, server->fds[i].revents);
+                ERROR_PRINT("Error: pollfd[%d].revents = %#x, fd = %d\n", i, server->fds[i].revents, server->fds[i].fd);
             }
         }
     }
 }
 
-#if 1
+/**
+ * @description: 关闭服务器, 将所有fds都清空
+ * @param {server_t} *server 服务器
+ * @return {*}
+ */
+int32_t server_close(server_t *server)
+{
+    // 关闭所有客户端连接
+    for (int i = 1; i <= MAX_CLIENTNUM; i++)
+    {
+        if (server->fds[i].fd != -1)
+        {
+            printf("Shutting down client %d\n", server->fds[i].fd);
+            shutdown(server->fds[i].fd, SHUT_RDWR); // 关闭读写
+            close(server->fds[i].fd);
+            server->fds[i].fd = -1;
+        }
+    }
+    server->client_count = 0;
+    // 关闭监听 socket
+    // server->fds[0].fd = -1;
+    close(server->server_sockfd);
+    printf("Server stopped.\n");
+    return 0;
+}
+
+#if 0
 void signal_handler(int sig)
 {
     INFO_PRINT("Signal %d received, exiting...\n", sig);
@@ -195,7 +243,7 @@ void server_run(server_t *server)
 int main()
 {
     server_t server = {0};
-    if (server_init(&server) == -1)
+    if (server_init(&server, 24680) == -1)
     {
         fprintf(stderr, "Server initialization failed\n");
         return -1;

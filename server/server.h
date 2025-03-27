@@ -27,4 +27,8 @@ typedef struct server_t
     int client_count;                        // 当前连接的客户端数量
 } server_t;
 
+extern int32_t server_init(server_t *server, uint16_t port);
+extern int32_t server_close(server_t *server);
+extern void server_handle_clients(server_t *server);
+
 #endif /* __SERVER_H__ */

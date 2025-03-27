@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:37:31
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-17 14:19:40
+ * @LastEditTime: 2025-03-26 11:25:52
  * @FilePath: \ele_ds_server\main.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -17,8 +17,12 @@
 #include <stdbool.h>
 #include <syslog.h> // 添加syslog头文件
 #include <time.h>
+#include <pthread.h>
 #include "weather/weather.h"
+#include "server/server.h"
+
 /* 宏定义 */
+#define OPENTEST
 
 /* 类型定义 */
 typedef struct send_data
@@ -30,12 +34,13 @@ typedef struct send_data
     struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
 } send_data_pack_t; // 发送到终端的数据包
 
-struct ele_ds_server
+typedef struct ele_ds_server
 {
     uint16_t port;      // 服务器端口
-    uint32_t clientcnt; // 客户端数量
+    bool exitflag;      // 退出标志 true:退出 false:运行
     uint32_t cityid;    // 城市ID
-};
-typedef struct ele_ds_server* ele_ds_server_t;
+    server_t server;    // 服务器
+    pthread_t server_thread; // 服务器线程
+}ele_ds_server_t;
 
 #endif /* __MAIN_H__ */

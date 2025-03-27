@@ -2,7 +2,7 @@
 TARGET = ele_ds_srever
 
 # 源文件目录
-SRCDIRS = . ./common ./weather
+SRCDIRS = . ./common ./weather ./server
 
 # 目标文件目录
 OBJDIR = build
@@ -18,10 +18,10 @@ CC = gcc
 
 # 编译选项
 WEATHER_API_KEY = "e7d95a70480a4d6c9140378d9d100d42"
-CFLAGS = -Wall -Wextra -O2 -DWEATHER_API_KEY=\"$(WEATHER_API_KEY)\" -std=c99
+CFLAGS = -Wall -Wextra -O2 -DWEATHER_API_KEY=\"$(WEATHER_API_KEY)\" -std=gnu99
 
 # 链接选项
-LDFLAGS = -lcurl -lcjson
+LDFLAGS = -lcurl -lcjson -lpthread
 
 # 头文件目录
 INCLUDES = -I. -Icommon -Iweather
