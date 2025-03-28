@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-28 15:08:55
+ * @LastEditTime: 2025-03-28 15:35:35
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -41,6 +41,11 @@ int32_t server_init(server_t *server, uint16_t port)
         return -1;
     }
     set_nonblocking(server->server_sockfd); // 设置非阻塞这样在poll里面就不会阻塞
+    
+    // 端口复用, 允许重用本地地址
+    int opt = 1;
+    setsockopt(server->server_sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    
     // 配置服务器地址
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -87,6 +92,13 @@ static int8_t server_events(server_t *server)
     struct sockaddr_in client_addr;
     int32_t client_sockfd;
     socklen_t addr_len = sizeof(client_addr);
+
+    // 如果server_sockfd无效, 直接返回, 正常会在关闭服务器时置-1
+    if (server->server_sockfd == -1)
+    {
+        return -1;
+    }
+
     client_sockfd = accept(server->server_sockfd, (struct sockaddr *)&client_addr, &addr_len);
     if (client_sockfd == -1)
     {
@@ -97,7 +109,6 @@ static int8_t server_events(server_t *server)
         }
         else
         {
-
             ERROR_PRINT("fd = %d", server->server_sockfd);
             perror("accept failed");
             return -1;
@@ -195,7 +206,8 @@ void server_handle_clients(server_t *server)
         {
             if (server->fds[i].revents != 0)
             {
-                ERROR_PRINT("Error: pollfd[%d].revents = %#x, fd = %d\n", i, server->fds[i].revents, server->fds[i].fd);
+                WARNING_PRINT("pollfd[%d].revents = %#x, fd = %d, server fd = %d\n",
+                              i, server->fds[i].revents, server->fds[i].fd, server->server_sockfd);
             }
         }
     }
@@ -213,16 +225,23 @@ int32_t server_close(server_t *server)
     {
         if (server->fds[i].fd != -1)
         {
-            printf("Shutting down client %d\n", server->fds[i].fd);
+            // printf("Shutting down client %d\n", server->fds[i].fd);
+            send(server->fds[i].fd, "SERVER_SHUTDOWN", strlen("SERVER_SHUTDOWN"), 0);
             shutdown(server->fds[i].fd, SHUT_RDWR); // 关闭读写
             close(server->fds[i].fd);
             server->fds[i].fd = -1;
+            server->fds[i].events = 0;
+            server->fds[i].revents = 0;
         }
     }
     server->client_count = 0;
     // 关闭监听 socket
-    // server->fds[0].fd = -1;
     close(server->server_sockfd);
+    // usleep(1000*1000);
+    server->server_sockfd = -1; // 关闭后置-1
+    server->fds[0].fd = -1;
+    server->fds[0].events = 0;
+    server->fds[0].revents = 0;
     printf("Server stopped.\n");
     return 0;
 }
