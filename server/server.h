@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <poll.h>
+#include <glib.h>
 
 /* 宏定义 */
 #define MAX_CLIENTNUM 30 // 最大客户端连接数
@@ -27,6 +28,9 @@ typedef struct server_t
     struct pollfd fds[MAX_CLIENTNUM + 1]; // 客户端文件描述符数组, 0号元素存放服务器socket描述符
     int client_count;                        // 当前连接的客户端数量
     client_event_cb client_event_handler;    // 客户端事件回调函数
+    
+    // 使用哈希表保存客户端文件描述符, 使用户名作为键, 文件描述符作为值, 发送数据时通过用户名匹配到客户端
+
 } server_t;
 
 extern int32_t server_init(server_t *server, uint16_t port, client_event_cb cb);

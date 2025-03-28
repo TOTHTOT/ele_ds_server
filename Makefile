@@ -18,10 +18,10 @@ CC = gcc
 
 # 编译选项
 WEATHER_API_KEY = "e7d95a70480a4d6c9140378d9d100d42"
-CFLAGS = -Wall -Wextra -O2 -DWEATHER_API_KEY=\"$(WEATHER_API_KEY)\" -std=gnu99
+CFLAGS = -Wall -Wextra -O2 -DWEATHER_API_KEY=\"$(WEATHER_API_KEY)\" -std=gnu99 -I/usr/include/glib-2.0 -I/usr/include/glib-2.0/glib -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/
 
 # 链接选项
-LDFLAGS = -lcurl -lcjson -lpthread
+LDFLAGS = -lcurl -lcjson -lpthread -lglib-2.0
 
 # 头文件目录
 INCLUDES = -I. -Icommon -Iweather
