@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-26 15:45:47
+ * @LastEditTime: 2025-03-28 15:08:55
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -147,7 +147,10 @@ static int8_t client_events(server_t *server, int32_t i)
         // 客户端断开连接
         INFO_PRINT("Client %d disconnected\n", server->fds[i].fd);
         close(server->fds[i].fd);
-        server->fds[i].fd = -1; // 将该客户端从pollfd数组中移除
+        // 将该客户端从pollfd数组中移除, 并清空对应事件
+        server->fds[i].fd = -1;
+        server->fds[i].events = 0;
+        server->fds[i].revents = 0;
         server->client_count--;
     }
     else
