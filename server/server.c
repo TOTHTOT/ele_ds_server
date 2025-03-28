@@ -8,6 +8,7 @@
  */
 #include "server.h"
 #include "../log.h"
+#include "../client/client.h"
 
 void set_nonblocking(int fd)
 {
@@ -171,7 +172,17 @@ static int8_t client_events(server_t *server, int32_t i)
         INFO_PRINT("i = %d, fd = %d, Received message: %s\n", i,  server->fds[i].fd, buffer);
         // 回复客户端
         char reply[MAX_MSGLEN] = {0};
-        sprintf(reply, "Server received: %s", buffer);
+        sprintf(reply, "Server received len: %d", strlen(buffer));
+        ele_client_info_t client_info = {0};
+        if (client_deserialize_from_json(buffer, &client_info) == 0) // 解析客户端发送过来的数据
+        {
+            if (client_show_info(&client_info) != 0) // 显示客户端信息
+            {
+                ERROR_PRINT("client_show_info failed\n");
+            }
+        }
+        else
+            ERROR_PRINT("client_deserialize_from_json failed\n");
         send(server->fds[i].fd, reply, strlen(reply), 0);
     }
     return 0;

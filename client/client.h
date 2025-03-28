@@ -42,5 +42,6 @@ typedef struct
 /* 函数 */
 extern char *client_serialize_to_json(const ele_client_info_t *client_info); // 将结构体数据序列化为 JSON 字符串
 extern int client_deserialize_from_json(const char *json_str, ele_client_info_t *client_info); // 将 JSON 字符串反序列化为结构体数据
+extern int8_t client_show_info(const ele_client_info_t *client_info); // 显示客户端信息
 
 #endif /* __CLIENT_H__ */

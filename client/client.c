@@ -1,6 +1,7 @@
 #include "client.h"
 #include "../log.h"
 #include <cjson/cJSON.h>
+#include <time.h>
 
 // 生成 JSON
 /**
@@ -87,6 +88,49 @@ int client_deserialize_from_json(const char *json_str, ele_client_info_t *client
     }
 
     cJSON_Delete(root);
+    return 0;
+}
+
+/**
+ * @description: 显示客户端信息
+ * @param {ele_client_info_t} *client_info 客户端信息结构体
+ * @return {int8_t} 0:成功 -1:失败
+ */
+int8_t client_show_info(const ele_client_info_t *client_info)
+{
+    if (client_info != NULL)
+    {
+        time_t raw_time;
+        struct tm *time_info;
+        time(&raw_time);
+        time_info = localtime(&raw_time);
+        // 获取时间字符串
+        char *time_str = asctime(time_info);
+
+        // 直接通过指针去掉换行符
+        if (time_str)
+        {
+            time_str[strlen(time_str) - 1] = '\0';
+        }
+        printf("\nRecv time:%s, Parsed Data:\n", time_str);
+        printf("Type: %u\n", client_info->type);
+        printf("Username: %s\n", client_info->cfg.username);
+        printf("City: %s\n", client_info->cfg.cityname);
+        printf("City ID: %u\n", client_info->cfg.cityid);
+        printf("Interval: %u sec\n", client_info->cfg.cntserver_interval);
+        printf("Version: %u\n", client_info->cfg.version);
+        printf("Battery: %u%%\n", client_info->cfg.battery);
+        printf("Temperature: %u°C\n", client_info->sensor_data.temperature);
+        printf("Humidity: %u%%\n", client_info->sensor_data.humidity);
+        printf("Pressure: %u Pa\n", client_info->sensor_data.pressure);
+        printf("TVOC: %u ppb\n", client_info->sensor_data.tvoc);
+        printf("CO2: %u ppm\n", client_info->sensor_data.co2);
+    }
+    else
+    {
+        ERROR_PRINT("Failed to parse JSON\n");
+        return -1; // 解析失败
+    }
     return 0;
 }
 

@@ -2,7 +2,7 @@
 TARGET = ele_ds_srever
 
 # 源文件目录
-SRCDIRS = . ./common ./weather ./server
+SRCDIRS = . ./common ./weather ./server ./client
 
 # 目标文件目录
 OBJDIR = build
