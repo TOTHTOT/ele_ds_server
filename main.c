@@ -10,6 +10,7 @@
 #include "log.h"
 #include "common.h"
 #include "weather.h"
+#include "./client/client.h"
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
@@ -32,7 +33,7 @@ void test_func()
     memset(&send_data, 0, sizeof(send_data_pack_t)); // 初始化结构体
     get_weather(send_data.weather, WEATHER_DAY_MAX, time(NULL), 101010100);
 
-    ret = server_init(&ele_ds_server.server, SERVER_PORT);
+    ret = server_init(&ele_ds_server.server, SERVER_PORT, client_event_handler);
     if (ret != 0)
     {
         ERROR_PRINT("Server initialization failed\n");

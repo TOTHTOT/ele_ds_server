@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-28 15:35:35
+ * @LastEditTime: 2025-03-28 17:11:43
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -31,9 +31,10 @@ void set_nonblocking(int fd)
  * @return {*}
  */
 // 初始化服务器
-int32_t server_init(server_t *server, uint16_t port)
+int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
 {
     struct sockaddr_in server_addr;
+    memset(server, 0, sizeof(server_t)); // 清空服务器结构体
 
     // 创建socket
     if ((server->server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -75,11 +76,13 @@ int32_t server_init(server_t *server, uint16_t port)
         }
         else
         {
-            server->fds[i].fd = -1;         // 初始化客户端socket为-1
+            server->fds[i].fd = -1; // 初始化客户端socket为-1
         }
         server->fds[i].events = POLLIN; // 设置监听POLLIN事件
         // INFO_PRINT("fds[%d].fd = %d\n", i, server->fds[i].fd);
     }
+    server->client_event_handler = cb; // 设置客户端事件回调函数
+    server->client_count = 0; // 初始化客户端数量为0
 
     return 0;
 }
@@ -169,20 +172,20 @@ static int8_t client_events(server_t *server, int32_t i)
     {
         // 处理接收到的消息
         buffer[valread] = '\0';
-        INFO_PRINT("i = %d, fd = %d, Received message: %s\n", i,  server->fds[i].fd, buffer);
+        INFO_PRINT("i = %d, fd = %d, Received message: %s", i, server->fds[i].fd, buffer);
         // 回复客户端
         char reply[MAX_MSGLEN] = {0};
-        sprintf(reply, "Server received len: %d", strlen(buffer));
-        ele_client_info_t client_info = {0};
-        if (client_deserialize_from_json(buffer, &client_info) == 0) // 解析客户端发送过来的数据
+        sprintf(reply, "Server received len: %ld", strlen(buffer));
+        if (server->client_event_handler != NULL)
         {
-            if (client_show_info(&client_info) != 0) // 显示客户端信息
+            int32_t ret = server->client_event_handler(buffer, strlen(buffer));
+            if (ret != 0) // 处理客户端事件
             {
-                ERROR_PRINT("client_show_info failed\n");
+                ERROR_PRINT("client_event_handler failed, ret = %d\n", ret);
             }
         }
         else
-            ERROR_PRINT("client_deserialize_from_json failed\n");
+            WARNING_PRINT("client_event_handler is NULL\n");
         send(server->fds[i].fd, reply, strlen(reply), 0);
     }
     return 0;

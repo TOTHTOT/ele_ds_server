@@ -134,6 +134,33 @@ int8_t client_show_info(const ele_client_info_t *client_info)
     return 0;
 }
 
+/**
+ * @description: 客户端事件处理函数
+ * @param {char} *buf 接收缓冲区
+ * @param {uint32_t} len 接收数据长度
+ * @return {*}
+ */
+int32_t client_event_handler(char *buf, uint32_t len)
+{
+    ele_client_info_t client_info = {0};
+    (void)len; // 防止编译器报错
+    
+    if (client_deserialize_from_json(buf, &client_info) == 0) // 解析客户端发送过来的数据
+    {
+        if (client_show_info(&client_info) != 0) // 显示客户端信息
+        {
+            ERROR_PRINT("client_show_info failed\n");
+            return -2;
+        }
+    }
+    else
+    {
+        ERROR_PRINT("client_deserialize_from_json failed\n");
+        return -1;
+    }
+    return 0;
+}
+
 #if 0
 // gcc -o client client.c -lcjson # 编译命令
 int main()
