@@ -11,7 +11,15 @@
 #define USER_NAME_SIZE 20 // 用户名最大长度
 #define CITY_NAME_SIZE 20 // 城市名字最大长度
 /* 类型定义 */
-
+typedef enum
+{
+    ELE_CLIENTMSG_INFO = 0,     // 客户端信息
+    ELE_CLIENTMSG_SUCCESS,      // 客户端成功
+    ELE_SERVERMSG_MEMO,         // 服务器备忘录消息
+    ELE_SERVERMSG_WEATHER,      // 服务器天气消息
+    ELE_SERVERMSG_CLIENTUPDATE, // 服务器客户端升级消息
+    ELE_MSG_MAX,                // 最大消息类型
+} ele_msg_type_t;               // 消息类型
 typedef struct
 {
     uint8_t temperature;  // 温度

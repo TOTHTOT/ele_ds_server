@@ -152,6 +152,7 @@ int32_t client_event_handler(char *buf, uint32_t len)
             ERROR_PRINT("client_show_info failed\n");
             return -2;
         }
+        return 1; // 处理信息成功这是要发送天气信息
     }
     else
     {
