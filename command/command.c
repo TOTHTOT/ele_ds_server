@@ -10,16 +10,120 @@
 
 #define MAX_ARGS 10 // 最大参数数量
 
-// 预定义命令列表
-const char *commands[] = {
-    "help",
-    "exit",
-    "status",
-    "memo",
-    "users",
-};
+// 命令处理函数原型
+typedef void (*command_func_t)(int argc, char *args[]);
 
-// 预定义参数
+// 简单的命令结构体
+typedef struct
+{
+    const char *name;
+    command_func_t func;
+    const char *usage;
+} command_t;
+
+// 处理 status 命令
+void handle_status(int argc, char *args[])
+{
+    if (argc < 2)
+    {
+        printf("Usage: status <clients|server>\n");
+        return;
+    }
+
+    if (strcmp(args[1], "clients") == 0)
+    {
+        if (ele_ds_server.server.ops.connected_client != NULL)
+            ele_ds_server.server.ops.connected_client(&ele_ds_server.server);
+        else
+            ERROR_PRINT("No connected clients.\n");
+    }
+    else if (strcmp(args[1], "server") == 0)
+    {
+        printf("Server status: Running\n");
+    }
+    else
+    {
+        printf("Unknown status parameter: %s\n", args[1]);
+    }
+}
+/**
+ * @description: 处理 memo send 命令
+ * @param {int} argc 参数数量
+ * @param {char **} args 参数列表
+ * @return {void}
+ */
+void handle_memo_send(int argc, char **args)
+{
+    if (argc < 4)
+    {
+        printf("Usage: memo send <fd> <msg>\n");
+        return;
+    }
+
+    int fd = atoi(args[2]);
+
+    // 处理消息，支持带空格的字符串
+    char raw_msg[256] = {0};
+    for (int i = 3; i < argc; i++)
+    {
+        strcat(raw_msg, args[i]);
+        if (i < argc - 1)
+            strcat(raw_msg, " ");
+    }
+    ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
+}
+
+// 处理 memo 命令
+void handle_memo(int argc, char *args[])
+{
+    if (argc < 2)
+    {
+        printf("Usage: memo <help|send>\n");
+        return;
+    }
+
+    if (strcmp(args[1], "help") == 0)
+    {
+        printf("Usage:\n  memo send <fd> <msg>\n");
+    }
+    else if (strcmp(args[1], "send") == 0)
+    {
+        handle_memo_send(argc, args);
+    }
+    else
+    {
+        printf("Unknown memo parameter: %s\n", args[1]);
+    }
+}
+
+// 处理 help 命令
+void handle_help(int argc, char *args[])
+{
+    (void)argc; // 忽略参数数量
+    (void)args; // 忽略参数列表
+    printf("Available commands: help, exit, status, memo, users\n");
+    printf("Usage:\n");
+    printf("  memo <help|send>\n");
+    printf("  status <clients|server>\n");
+}
+
+// 处理 exit 命令
+void handle_exit(int argc, char *args[])
+{
+    (void)argc; // 忽略参数数量
+    (void)args; // 忽略参数列表
+    printf("Exiting...\n");
+    ele_ds_server.exitflag = true; // 设置退出标志
+}
+
+// 创建命令表
+command_t commands[] = {
+    {"help", handle_help, "Show available commands"},
+    {"exit", handle_exit, "Exit the program"},
+    {"status", handle_status, "Show server status"},
+    {"memo", handle_memo, "Handle memo actions"},
+    {"users", NULL, "Show connected users"},
+};
 const char *memo_params[] = {
     "help",
     "send",
@@ -28,11 +132,23 @@ const char *status_params[] = {
     "clients",
     "server",
 };
-
 // 命令和参数数量
 #define CMD_COUNT (sizeof(commands) / sizeof(commands[0]))
 #define MEMO_PARAM_COUNT (sizeof(memo_params) / sizeof(memo_params[0]))
 #define STATUS_PARAM_COUNT (sizeof(status_params) / sizeof(status_params[0]))
+
+// 查找命令
+command_t *find_command(const char *name)
+{
+    for (size_t i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
+    {
+        if (strcmp(commands[i].name, name) == 0)
+        {
+            return &commands[i];
+        }
+    }
+    return NULL;
+}
 
 // 自动补全命令
 char *command_generator(const char *text, int state)
@@ -46,7 +162,7 @@ char *command_generator(const char *text, int state)
 
     while (index < CMD_COUNT)
     {
-        const char *cmd = commands[index++];
+        const char *cmd = commands[index++].name;
         if (strncmp(cmd, text, len) == 0)
         {
             return strdup(cmd);
@@ -56,31 +172,40 @@ char *command_generator(const char *text, int state)
 }
 
 // 自动补全参数（根据不同的命令）
-char *param_generator(const char *text, int state) {
+char *param_generator(const char *text, int state)
+{
     static uint32_t index, len;
     static const char **param_list = NULL;
     static size_t param_count = 0;
 
-    if (state == 0) {  // 初始化
+    if (state == 0)
+    { // 初始化
         index = 0;
         len = strlen(text);
-        
+
         // 获取当前输入的命令
         char *buf = rl_line_buffer;
-        if (strncmp(buf, "memo", 4) == 0) {
+        if (strncmp(buf, "memo", 4) == 0)
+        {
             param_list = memo_params;
             param_count = MEMO_PARAM_COUNT;
-        } else if (strncmp(buf, "status", 6) == 0) {
+        }
+        else if (strncmp(buf, "status", 6) == 0)
+        {
             param_list = status_params;
             param_count = STATUS_PARAM_COUNT;
-        } else {
+        }
+        else
+        {
             return NULL;
         }
     }
 
-    while (index < param_count) {
+    while (index < param_count)
+    {
         const char *param = param_list[index++];
-        if (strncmp(param, text, len) == 0) {
+        if (strncmp(param, text, len) == 0)
+        {
             return strdup(param);
         }
     }
@@ -113,36 +238,8 @@ char **command_completion(const char *text, int start, int end)
 
     return NULL;
 }
-/**
- * @description: 处理 memo send 命令
- * @param {int} argc 参数数量
- * @param {char **} args 参数列表
- * @return {void}
- */
-void handle_memo_send(int argc, char **args)
-{
-    if (argc < 4)
-    {
-        printf("Usage: memo send <fd> <msg>\n");
-        return;
-    }
 
-    int fd = atoi(args[2]);
-
-    // 处理消息，支持带空格的字符串
-    char raw_msg[256] = {0};
-    for (int i = 3; i < argc; i++)
-    {
-        strcat(raw_msg, args[i]);
-        if (i < argc - 1)
-            strcat(raw_msg, " ");
-    }
-
-    // 调用发送函数
-    ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
-}
-
-// 解析命令
+// 解析并执行命令
 void execute_command(char *input)
 {
     char *args[MAX_ARGS];
@@ -161,60 +258,14 @@ void execute_command(char *input)
         return; // 空输入
     }
 
-    // 解析命令
-    if (strcmp(args[0], "exit") == 0)
+    // 查找命令并执行
+    command_t *cmd = find_command(args[0]);
+    if (cmd)
     {
-        printf("Exiting...\n");
-        exit(0);
-    }
-    else if (strcmp(args[0], "help") == 0)
-    {
-        printf("Available commands: help, exit, status, memo, users\n");
-        printf("Usage:\n");
-        printf("  memo <help|send>\n");
-        printf("  status <clients|server>\n");
-    }
-    else if (strcmp(args[0], "status") == 0)
-    {
-        if (argc < 2)
-        {
-            printf("Usage: status <clients|server>\n");
-        }
-        else if (strcmp(args[1], "clients") == 0)
-        {
-            if (ele_ds_server.server.ops.connected_client != NULL)
-                ele_ds_server.server.ops.connected_client(&ele_ds_server.server);
-            else
-                ERROR_PRINT("No connected clients.\n");
-        }
-        else if (strcmp(args[1], "server") == 0)
-        {
-            printf("Server status: Running\n");
-        }
+        if (cmd->func != NULL)
+            cmd->func(argc, args); // 执行命令处理函数
         else
-        {
-            printf("Unknown status parameter: %s\n", args[1]);
-        }
-    }
-    else if (strcmp(args[0], "memo") == 0)
-    {
-        if (argc < 2)
-        {
-            printf("Usage: memo <help|send>\n");
-        }
-        else if (strcmp(args[1], "help") == 0)
-        {
-            printf("Usage:\n");
-            printf("  memo send <fd> <msg>\n");
-        }
-        else if (strcmp(args[1], "send") == 0)
-        {
-            handle_memo_send(argc, args);
-        }
-        else
-        {
-            printf("Unknown memo parameter: %s\n", args[1]);
-        }
+            printf("Command not implemented: %s\n", cmd->name);
     }
     else
     {
