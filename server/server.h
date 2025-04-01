@@ -36,6 +36,7 @@ typedef struct server
     struct 
     {
         int32_t (*connected_client)(struct server *server);
+        int32_t (*send_memo)(struct server *server, int32_t fd, char *buf, uint32_t len);
     }ops;
     
 } server_t;

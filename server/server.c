@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 11:37:56
+ * @LastEditTime: 2025-04-01 13:50:01
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -13,6 +13,7 @@
 #include <cjson/cJSON.h>
 
 static int32_t server_show_cntclient(server_t *server);
+static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len);
 
 void set_nonblocking(int fd)
 {
@@ -89,7 +90,7 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
     server->client_count = 0; // 初始化客户端数量为0
     
     server->ops.connected_client = server_show_cntclient; // 设置操作函数
-
+    server->ops.send_memo = server_send_memo; // 设置发送备忘录函数
     return 0;
 }
 
@@ -115,6 +116,27 @@ static int32_t server_show_cntclient(server_t *server)
         }
     }
     return 0;
+}
+
+/**
+ * @description: 发送备忘录数据到客户端
+ * @param {server} *server 服务器
+ * @param {int32_t} fd 客户端文件描述符
+ * @param {char} *buf 发送数据缓冲区
+ * @param {uint32_t} len 发送数据长度
+ * @return {*}
+ */
+static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len)
+{
+    if (server == NULL || buf == NULL || len == 0)
+    {
+        return -1;
+    }
+    ele_msg_t msg = {0};
+    msg.len = len;                    // 备忘录数据长度
+    msg.msgtype = ELE_SERVERMSG_MEMO; // 备忘录消息类型
+    msg.data.memo = buf;              // 备忘录数据
+    return msg_send(fd, &msg);    // 发送数据
 }
 
 /**

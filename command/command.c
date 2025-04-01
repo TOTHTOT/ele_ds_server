@@ -113,6 +113,34 @@ char **command_completion(const char *text, int start, int end)
 
     return NULL;
 }
+/**
+ * @description: 处理 memo send 命令
+ * @param {int} argc 参数数量
+ * @param {char **} args 参数列表
+ * @return {void}
+ */
+void handle_memo_send(int argc, char **args)
+{
+    if (argc < 4)
+    {
+        printf("Usage: memo send <fd> <msg>\n");
+        return;
+    }
+
+    int fd = atoi(args[2]);
+
+    // 处理消息，支持带空格的字符串
+    char raw_msg[256] = {0};
+    for (int i = 3; i < argc; i++)
+    {
+        strcat(raw_msg, args[i]);
+        if (i < argc - 1)
+            strcat(raw_msg, " ");
+    }
+
+    // 调用发送函数
+    ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
+}
 
 // 解析命令
 void execute_command(char *input)
@@ -181,7 +209,7 @@ void execute_command(char *input)
         }
         else if (strcmp(args[1], "send") == 0)
         {
-            printf("Sending memo...\n");
+            handle_memo_send(argc, args);
         }
         else
         {

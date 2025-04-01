@@ -141,7 +141,7 @@ int8_t client_show_info(const ele_client_info_t *client_info)
  * @param {ele_msg_t} *msg
  * @return {*}
  */
-int32_t server_msg(int fd, ele_msg_t *msg)
+int32_t msg_send(int fd, ele_msg_t *msg)
 {
     int32_t ret = 0;
 
@@ -242,7 +242,7 @@ int32_t client_event_handler(int32_t fd, char *buf, uint32_t len)
             .len = 7,
             .data.weather = weather,
         };
-        server_msg(fd, &msg);
+        msg_send(fd, &msg);
         return 1; // 处理信息成功这是要发送天气信息
     }
     else
