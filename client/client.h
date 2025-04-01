@@ -46,11 +46,21 @@ typedef struct
     ele_client_cfg_t cfg;                 // 客户端配置
 } ele_client_info_t;                      // 客户端连接到服务器要发送过来的消息
 
-
+typedef struct
+{
+    union
+    {
+        char *memo;                   // 备忘录消息
+        struct weather_info *weather; // 天气消息, 7天天气
+        uint8_t *client_update;       // 客户端升级消息, 升级包数据
+    } data;
+    uint32_t len;           // 消息长度
+    ele_msg_type_t msgtype; // 消息类型
+} ele_msg_t;                // 消息结构体
 /* 函数 */
 extern char *client_serialize_to_json(const ele_client_info_t *client_info); // 将结构体数据序列化为 JSON 字符串
 extern int client_deserialize_from_json(const char *json_str, ele_client_info_t *client_info); // 将 JSON 字符串反序列化为结构体数据
 extern int8_t client_show_info(const ele_client_info_t *client_info); // 显示客户端信息
-extern int32_t client_event_handler(char *buf, uint32_t len); // 处理客户端事件
+extern int32_t client_event_handler(int32_t fd, char *buf, uint32_t len); // 处理客户端事件
 
 #endif /* __CLIENT_H__ */

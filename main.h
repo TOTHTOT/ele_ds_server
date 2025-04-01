@@ -22,7 +22,7 @@
 #include "server/server.h"
 
 /* 宏定义 */
-#define OPENTEST
+// #define OPENTEST
 
 /* 类型定义 */
 typedef struct send_data
@@ -38,7 +38,6 @@ typedef struct ele_ds_server
 {
     uint16_t port;      // 服务器端口
     bool exitflag;      // 退出标志 true:退出 false:运行
-    uint32_t cityid;    // 城市ID
     server_t server;    // 服务器
     pthread_t server_thread; // 服务器线程
 }ele_ds_server_t;

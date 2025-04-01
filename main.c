@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:35:51
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-31 17:19:27
+ * @LastEditTime: 2025-04-01 09:39:16
  * @FilePath: \ele_ds_server\main.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -46,15 +46,6 @@ void test_func()
         pthread_create(&ele_ds_server.server_thread, NULL, server_thread, &ele_ds_server.server);
         INFO_PRINT("Server initialized\n");
     }
-#if 0
-    char *test = "hello world";
-    ele_msg_t msg2 = {
-        .msgtype = ELE_SERVERMSG_MEMO,
-        .len = strlen(test),
-        .data.memo = test,
-    };
-    server_msg(&ele_ds_server.server, &msg2);
-#endif
 }
 
 static void *server_thread(void *arg)
@@ -85,12 +76,43 @@ void signal_handler(int signo)
     }
 }
 
+/**
+ * @description: 初始化设备
+ * @param {ele_ds_server_t} *device 设备指针
+ * @param {uint16_t} port 端口号
+ * @return {*}
+ */
+static int32_t ele_ds_server_init(ele_ds_server_t *device, uint16_t port)
+{
+    int32_t ret = 0;
+    if (device == NULL)
+    {
+        ERROR_PRINT("Invalid argument: device is NULL");
+        return -1;
+    }
+    
+    device->port = port;
+    device->exitflag = false;
+    ret = server_init(&ele_ds_server.server, port, client_event_handler);
+    if (ret != 0)
+    {
+        ERROR_PRINT("Server initialization failed\n");
+        return -2;
+    }
+    pthread_create(&ele_ds_server.server_thread, NULL, server_thread, &ele_ds_server.server);
+    INFO_PRINT("Server initialized\n");
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     // 注册信号
     signal(SIGINT, signal_handler);
 #ifdef OPENTEST
     test_func();
+#else
+    ele_ds_server_init(&ele_ds_server, SERVER_PORT);
 #endif /* OPENTEST */
     while (ele_ds_server.exitflag == false)
     {

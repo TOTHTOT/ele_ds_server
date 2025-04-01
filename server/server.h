@@ -13,7 +13,6 @@
 #include <errno.h>
 #include <poll.h>
 #include <glib.h>
-#include "../weather/weather.h"
 #include "../client/client.h"
 
 /* 宏定义 */
@@ -22,7 +21,7 @@
 #define SERVER_PORT 24680 // 服务器端口
 
 /* 类型定义 */
-typedef int32_t (*client_event_cb)(char *buf, uint32_t len); // 客户端事件回调函数类型
+typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len); // 客户端事件回调函数类型
 typedef struct server_t
 {
     int server_sockfd;                       // 服务器socket描述符
@@ -35,18 +34,6 @@ typedef struct server_t
 
 } server_t;
 
-typedef struct
-{
-    union
-    {
-        char *memo;                   // 备忘录消息
-        struct weather_info *weather; // 天气消息, 7天天气
-        uint8_t *client_update;       // 客户端升级消息, 升级包数据
-    } data;
-    uint32_t len;           // 消息长度
-    ele_msg_type_t msgtype; // 消息类型
-} ele_msg_t;
-
 typedef struct 
 {
     ele_msg_type_t msgtype; // 消息类型
@@ -57,5 +44,4 @@ typedef struct
 extern int32_t server_init(server_t *server, uint16_t port, client_event_cb cb);
 extern int32_t server_close(server_t *server);
 extern void server_handle_clients(server_t *server);
-extern int32_t server_msg(server_t *server, int32_t fd, ele_msg_t *msg);
 #endif /* __SERVER_H__ */

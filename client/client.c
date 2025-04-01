@@ -2,6 +2,7 @@
 #include "../log.h"
 #include <cjson/cJSON.h>
 #include <time.h>
+#include "../weather/weather.h"
 
 // 生成 JSON
 /**
@@ -135,12 +136,92 @@ int8_t client_show_info(const ele_client_info_t *client_info)
 }
 
 /**
+ * @description: 服务器消息处理函数, 发送消息给客户端
+ * @param {int} fd
+ * @param {ele_msg_t} *msg
+ * @return {*}
+ */
+int32_t server_msg(int fd, ele_msg_t *msg)
+{
+    int32_t ret = 0;
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "msgtype", msg->msgtype);
+    switch (msg->msgtype)
+    {
+    case ELE_SERVERMSG_MEMO:
+        cJSON_AddNumberToObject(root, "len", msg->len);
+        cJSON_AddStringToObject(root, "message", msg->data.memo);
+        break;
+    case ELE_SERVERMSG_WEATHER:
+        {
+            cJSON *data_array = cJSON_CreateArray();
+            struct weather_info *data = msg->data.weather;
+            int data_len = msg->len;
+            // 结构体数组转换成 JSON
+            for (int i = 0; i < data_len; i++)
+            {
+                cJSON *item = cJSON_CreateObject();
+                cJSON_AddStringToObject(item, "fxDate", data[i].fxDate);
+                cJSON_AddStringToObject(item, "sunrise", data[i].sunrise);
+                cJSON_AddStringToObject(item, "sunset", data[i].sunset);
+                cJSON_AddStringToObject(item, "moonrise", data[i].moonrise);
+                cJSON_AddStringToObject(item, "moonset", data[i].moonset);
+                cJSON_AddStringToObject(item, "moonPhase", data[i].moonPhase);
+                cJSON_AddStringToObject(item, "moonPhaseIcon", data[i].moonPhaseIcon);
+                cJSON_AddNumberToObject(item, "tempMax", data[i].tempMax);
+                cJSON_AddNumberToObject(item, "tempMin", data[i].tempMin);
+                cJSON_AddStringToObject(item, "iconDay", data[i].iconDay);
+                cJSON_AddStringToObject(item, "textDay", data[i].textDay);
+                cJSON_AddStringToObject(item, "iconNight", data[i].iconNight);
+                cJSON_AddStringToObject(item, "textNight", data[i].textNight);
+                cJSON_AddNumberToObject(item, "wind360Day", data[i].wind360Day);
+                cJSON_AddStringToObject(item, "windDirDay", data[i].windDirDay);
+                cJSON_AddStringToObject(item, "windScaleDay", data[i].windScaleDay);
+                cJSON_AddNumberToObject(item, "windSpeedDay", data[i].windSpeedDay);
+                cJSON_AddNumberToObject(item, "wind360Night", data[i].wind360Night);
+                cJSON_AddStringToObject(item, "windDirNight", data[i].windDirNight);
+                cJSON_AddStringToObject(item, "windScaleNight", data[i].windScaleNight);
+                cJSON_AddNumberToObject(item, "windSpeedNight", data[i].windSpeedNight);
+                cJSON_AddNumberToObject(item, "humidity", data[i].humidity);
+                cJSON_AddNumberToObject(item, "precip", data[i].precip);
+                cJSON_AddNumberToObject(item, "pressure", data[i].pressure);
+                cJSON_AddNumberToObject(item, "vis", data[i].vis);
+                cJSON_AddNumberToObject(item, "cloud", data[i].cloud);
+                cJSON_AddNumberToObject(item, "uvIndex", data[i].uvIndex);
+    
+                cJSON_AddItemToArray(data_array, item);
+            }
+            cJSON_AddNumberToObject(root, "len", data_len);
+            cJSON_AddItemToObject(root, "data", data_array);
+        }
+        break;
+    case ELE_SERVERMSG_CLIENTUPDATE:
+        break;
+    default:
+        WARNING_PRINT("Unknown message type: %d\n", msg->msgtype);
+        return -1; // 未知消息类型, 处理失败
+    }
+    char *json_str = cJSON_PrintUnformatted(root);
+    // printf("Sending message to client: %s\n", json_str);
+    ret = write(fd, json_str, strlen(json_str)); // 发送给客户端
+    if (ret < 0)
+    {
+        ERROR_PRINT("send failed: %d\n", ret);
+        cJSON_Delete(root);
+        return -2;
+    }
+    cJSON_Delete(root);
+    return 0;
+}
+
+/**
  * @description: 客户端事件处理函数
  * @param {char} *buf 接收缓冲区
  * @param {uint32_t} len 接收数据长度
  * @return {*}
  */
-int32_t client_event_handler(char *buf, uint32_t len)
+int32_t client_event_handler(int32_t fd, char *buf, uint32_t len)
 {
     ele_client_info_t client_info = {0};
     (void)len; // 防止编译器报错
@@ -152,6 +233,16 @@ int32_t client_event_handler(char *buf, uint32_t len)
             ERROR_PRINT("client_show_info failed\n");
             return -2;
         }
+        struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
+        memset(weather, 0, sizeof(weather));          // 初始化结构体
+        get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_info.cfg.cityid);
+        // 测试消息发送
+        ele_msg_t msg = {
+            .msgtype = ELE_SERVERMSG_WEATHER,
+            .len = 7,
+            .data.weather = weather,
+        };
+        server_msg(fd, &msg);
         return 1; // 处理信息成功这是要发送天气信息
     }
     else

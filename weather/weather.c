@@ -94,6 +94,13 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
 
     // 提取 code 字段
     cJSON *code = cJSON_GetObjectItemCaseSensitive(root, "code");
+    if (code == NULL)
+    {
+        ERROR_PRINT("code is NULL\n");
+        cJSON_Delete(root);
+        return -2;
+    }
+    
     if (cJSON_IsString(code))
     {
         INFO_PRINT("code: %s\n", code->valuestring);
