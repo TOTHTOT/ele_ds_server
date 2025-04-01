@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 09:20:24
+ * @LastEditTime: 2025-04-01 11:37:56
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -11,6 +11,8 @@
 #include "../client/client.h"
 #include "main.h"
 #include <cjson/cJSON.h>
+
+static int32_t server_show_cntclient(server_t *server);
 
 void set_nonblocking(int fd)
 {
@@ -85,7 +87,33 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
     }
     server->client_event_handler = cb; // 设置客户端事件回调函数
     server->client_count = 0; // 初始化客户端数量为0
+    
+    server->ops.connected_client = server_show_cntclient; // 设置操作函数
 
+    return 0;
+}
+
+/**
+ * @description: 显示客户端数量
+ * @param {server_t} *server 服务器
+ * @return {int32_t} 0 成功; -1 失败
+ */
+static int32_t server_show_cntclient(server_t *server)
+{
+    if (server == NULL)
+    {
+        ERROR_PRINT("server is NULL\n");
+        return -1;
+    }
+    printf("Connected clients: %d\n", server->client_count);
+    // 从1开始, 0是服务器
+    for (int i = 1; i < MAX_CLIENTNUM; i++)
+    {
+        if (server->fds[i].fd != -1)
+        {
+            printf("Client %d: %d\n", i, ele_ds_server.server.fds[i].fd);
+        }
+    }
     return 0;
 }
 

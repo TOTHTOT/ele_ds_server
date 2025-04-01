@@ -22,7 +22,7 @@
 
 /* 类型定义 */
 typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len); // 客户端事件回调函数类型
-typedef struct server_t
+typedef struct server
 {
     int server_sockfd;                       // 服务器socket描述符
     struct sockaddr_in server_addr;          // 服务器地址
@@ -32,6 +32,12 @@ typedef struct server_t
     
     // 使用哈希表保存客户端文件描述符, 使用户名作为键, 文件描述符作为值, 发送数据时通过用户名匹配到客户端
 
+    // 操作函数
+    struct 
+    {
+        int32_t (*connected_client)(struct server *server);
+    }ops;
+    
 } server_t;
 
 typedef struct 

@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:35:51
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 09:39:16
+ * @LastEditTime: 2025-04-01 11:44:32
  * @FilePath: \ele_ds_server\main.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -11,17 +11,18 @@
 #include "common.h"
 #include "weather.h"
 #include "./client/client.h"
-#include "server/server.h"
+#include "./server/server.h"
+#include "./command/command.h"
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
+#include <execinfo.h>
 
 /* 全局变量 */
 ele_ds_server_t ele_ds_server = {0};
 
 /* 函数声明 */
 static void *server_thread(void *arg);
-
 
 /**
  * @description: 测试相关函数
@@ -70,7 +71,17 @@ void signal_handler(int signo)
         INFO_PRINT("Signal %d received, exiting...\n", signo);
         ele_ds_server.exitflag = true;
         break;
-    
+    case SIGSEGV:
+    {
+        void *array[10];
+        size_t size;
+
+        size = backtrace(array, 10);
+        fprintf(stderr, "Error: signal %d:\n", signo);
+        backtrace_symbols_fd(array, size, STDERR_FILENO);
+
+        break;
+    }
     default:
         break;
     }
@@ -109,14 +120,21 @@ int main(int argc, char *argv[])
 {
     // 注册信号
     signal(SIGINT, signal_handler);
+    signal(SIGSEGV, signal_handler);
 #ifdef OPENTEST
     test_func();
 #else
     ele_ds_server_init(&ele_ds_server, SERVER_PORT);
+    rl_attempted_completion_function = command_completion;
 #endif /* OPENTEST */
     while (ele_ds_server.exitflag == false)
     {
-        usleep(100 * 1000);
+        char *input = readline("> ");  // 显示 `>` 提示符
+        if (input && *input) {
+            add_history(input);  // 添加到命令历史
+            execute_command(input);
+        }
+        free(input);  // readline 需要手动释放内存
     }
     server_close(&ele_ds_server.server);
     pthread_join(ele_ds_server.server_thread, NULL);

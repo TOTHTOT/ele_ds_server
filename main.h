@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:37:31
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-26 11:25:52
+ * @LastEditTime: 2025-04-01 10:40:06
  * @FilePath: \ele_ds_server\main.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -41,5 +41,7 @@ typedef struct ele_ds_server
     server_t server;    // 服务器
     pthread_t server_thread; // 服务器线程
 }ele_ds_server_t;
+
+extern ele_ds_server_t ele_ds_server;
 
 #endif /* __MAIN_H__ */
