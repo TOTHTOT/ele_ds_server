@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-17 13:28:57
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-03-20 16:04:25
+ * @LastEditTime: 2025-04-01 17:20:01
  * @FilePath: \ele_ds_server\common\common.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -87,4 +87,66 @@ int32_t get_data_byurl(char *url,
         return -EIO;
     }
     return 0;
+}
+
+// Base64 编码表
+static const char base64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// 将 16 进制字符串转换为字节数组
+void hex_to_bytes(const char *hex, unsigned char *bytes, size_t *length)
+{
+    size_t hex_len = strlen(hex);
+    if (hex_len % 2 != 0)
+    {
+        fprintf(stderr, "Invalid hex string length\n");
+        return;
+    }
+    *length = hex_len / 2;
+    for (size_t i = 0; i < *length; ++i)
+    {
+        sscanf(hex + 2 * i, "%2hhx", &bytes[i]);
+    }
+}
+
+// Base64 编码
+void base64_encode(const unsigned char *input, size_t length, char *output)
+{
+    size_t i = 0, j = 0;
+    unsigned char triple[3];
+    unsigned char quartet[4];
+
+    while (length--)
+    {
+        triple[i++] = *(input++);
+        if (i == 3)
+        {
+            quartet[0] = (triple[0] >> 2) & 0x3F;
+            quartet[1] = ((triple[0] << 4) | (triple[1] >> 4)) & 0x3F;
+            quartet[2] = ((triple[1] << 2) | (triple[2] >> 6)) & 0x3F;
+            quartet[3] = triple[2] & 0x3F;
+
+            for (i = 0; i < 4; ++i)
+                output[j++] = base64_table[quartet[i]];
+
+            i = 0;
+        }
+    }
+
+    if (i)
+    {
+        for (size_t k = i; k < 3; ++k)
+            triple[k] = '\0';
+
+        quartet[0] = (triple[0] >> 2) & 0x3F;
+        quartet[1] = ((triple[0] << 4) | (triple[1] >> 4)) & 0x3F;
+        quartet[2] = ((triple[1] << 2) | (triple[2] >> 6)) & 0x3F;
+        quartet[3] = triple[2] & 0x3F;
+
+        for (size_t k = 0; k < i + 1; ++k)
+            output[j++] = base64_table[quartet[k]];
+
+        while (i++ < 3)
+            output[j++] = '=';
+    }
+    output[j] = '\0';
 }

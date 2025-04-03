@@ -154,49 +154,51 @@ int32_t msg_send(int fd, ele_msg_t *msg)
         cJSON_AddStringToObject(root, "message", msg->data.memo);
         break;
     case ELE_SERVERMSG_WEATHER:
+    {
+        cJSON *data_array = cJSON_CreateArray();
+        struct weather_info *data = msg->data.weather;
+        int data_len = msg->len;
+        // 结构体数组转换成 JSON
+        for (int i = 0; i < data_len; i++)
         {
-            cJSON *data_array = cJSON_CreateArray();
-            struct weather_info *data = msg->data.weather;
-            int data_len = msg->len;
-            // 结构体数组转换成 JSON
-            for (int i = 0; i < data_len; i++)
-            {
-                cJSON *item = cJSON_CreateObject();
-                cJSON_AddStringToObject(item, "fxDate", data[i].fxDate);
-                cJSON_AddStringToObject(item, "sunrise", data[i].sunrise);
-                cJSON_AddStringToObject(item, "sunset", data[i].sunset);
-                cJSON_AddStringToObject(item, "moonrise", data[i].moonrise);
-                cJSON_AddStringToObject(item, "moonset", data[i].moonset);
-                cJSON_AddStringToObject(item, "moonPhase", data[i].moonPhase);
-                cJSON_AddStringToObject(item, "moonPhaseIcon", data[i].moonPhaseIcon);
-                cJSON_AddNumberToObject(item, "tempMax", data[i].tempMax);
-                cJSON_AddNumberToObject(item, "tempMin", data[i].tempMin);
-                cJSON_AddStringToObject(item, "iconDay", data[i].iconDay);
-                cJSON_AddStringToObject(item, "textDay", data[i].textDay);
-                cJSON_AddStringToObject(item, "iconNight", data[i].iconNight);
-                cJSON_AddStringToObject(item, "textNight", data[i].textNight);
-                cJSON_AddNumberToObject(item, "wind360Day", data[i].wind360Day);
-                cJSON_AddStringToObject(item, "windDirDay", data[i].windDirDay);
-                cJSON_AddStringToObject(item, "windScaleDay", data[i].windScaleDay);
-                cJSON_AddNumberToObject(item, "windSpeedDay", data[i].windSpeedDay);
-                cJSON_AddNumberToObject(item, "wind360Night", data[i].wind360Night);
-                cJSON_AddStringToObject(item, "windDirNight", data[i].windDirNight);
-                cJSON_AddStringToObject(item, "windScaleNight", data[i].windScaleNight);
-                cJSON_AddNumberToObject(item, "windSpeedNight", data[i].windSpeedNight);
-                cJSON_AddNumberToObject(item, "humidity", data[i].humidity);
-                cJSON_AddNumberToObject(item, "precip", data[i].precip);
-                cJSON_AddNumberToObject(item, "pressure", data[i].pressure);
-                cJSON_AddNumberToObject(item, "vis", data[i].vis);
-                cJSON_AddNumberToObject(item, "cloud", data[i].cloud);
-                cJSON_AddNumberToObject(item, "uvIndex", data[i].uvIndex);
-    
-                cJSON_AddItemToArray(data_array, item);
-            }
-            cJSON_AddNumberToObject(root, "len", data_len);
-            cJSON_AddItemToObject(root, "data", data_array);
+            cJSON *item = cJSON_CreateObject();
+            cJSON_AddStringToObject(item, "fxDate", data[i].fxDate);
+            cJSON_AddStringToObject(item, "sunrise", data[i].sunrise);
+            cJSON_AddStringToObject(item, "sunset", data[i].sunset);
+            cJSON_AddStringToObject(item, "moonrise", data[i].moonrise);
+            cJSON_AddStringToObject(item, "moonset", data[i].moonset);
+            cJSON_AddStringToObject(item, "moonPhase", data[i].moonPhase);
+            cJSON_AddStringToObject(item, "moonPhaseIcon", data[i].moonPhaseIcon);
+            cJSON_AddNumberToObject(item, "tempMax", data[i].tempMax);
+            cJSON_AddNumberToObject(item, "tempMin", data[i].tempMin);
+            cJSON_AddStringToObject(item, "iconDay", data[i].iconDay);
+            cJSON_AddStringToObject(item, "textDay", data[i].textDay);
+            cJSON_AddStringToObject(item, "iconNight", data[i].iconNight);
+            cJSON_AddStringToObject(item, "textNight", data[i].textNight);
+            cJSON_AddNumberToObject(item, "wind360Day", data[i].wind360Day);
+            cJSON_AddStringToObject(item, "windDirDay", data[i].windDirDay);
+            cJSON_AddStringToObject(item, "windScaleDay", data[i].windScaleDay);
+            cJSON_AddNumberToObject(item, "windSpeedDay", data[i].windSpeedDay);
+            cJSON_AddNumberToObject(item, "wind360Night", data[i].wind360Night);
+            cJSON_AddStringToObject(item, "windDirNight", data[i].windDirNight);
+            cJSON_AddStringToObject(item, "windScaleNight", data[i].windScaleNight);
+            cJSON_AddNumberToObject(item, "windSpeedNight", data[i].windSpeedNight);
+            cJSON_AddNumberToObject(item, "humidity", data[i].humidity);
+            cJSON_AddNumberToObject(item, "precip", data[i].precip);
+            cJSON_AddNumberToObject(item, "pressure", data[i].pressure);
+            cJSON_AddNumberToObject(item, "vis", data[i].vis);
+            cJSON_AddNumberToObject(item, "cloud", data[i].cloud);
+            cJSON_AddNumberToObject(item, "uvIndex", data[i].uvIndex);
+
+            cJSON_AddItemToArray(data_array, item);
         }
-        break;
+        cJSON_AddNumberToObject(root, "len", data_len);
+        cJSON_AddItemToObject(root, "data", data_array);
+    }
+    break;
     case ELE_SERVERMSG_CLIENTUPDATE:
+        cJSON_AddNumberToObject(root, "len", msg->len);
+        cJSON_AddStringToObject(root, "message", msg->data.client_update); // 升级包数据
         break;
     default:
         WARNING_PRINT("Unknown message type: %d\n", msg->msgtype);

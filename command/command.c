@@ -2,6 +2,7 @@
 #include "../main.h"
 #include "../log.h"
 #include "../server/server.h"
+#include "../common/common.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,12 +117,56 @@ void handle_exit(int argc, char *args[])
     ele_ds_server.exitflag = true; // 设置退出标志
 }
 
+/**
+ * @description: 处理客户端升级命令
+ * @param {int} argc 参数数量
+ * @param {char} *args 参数列表 fd path
+ * @note: fd == MAX_CLIENTNUM + 1, 代表所有客户端都升级
+ * @return {*}
+ */
+void handle_csupdate(int argc, char *args[])
+{
+    if (argc < 3)
+    {
+        printf("Usage: csupdate <fd> <path>\n");
+        return;
+    }
+    int fd = atoi(args[1]);
+    char *path = args[2];
+
+    // 升级包通过json发送, 每次发送10k, 直到发送完毕
+    int32_t updatefile = open(path, O_RDONLY);
+    if (updatefile == -1)
+    {
+        ERROR_PRINT("open %s failed: %s\n", path, strerror(errno));
+        return;
+    }
+    uint32_t filesize = lseek(updatefile, 0, SEEK_END);
+    lseek(updatefile, 0, SEEK_SET);
+
+    uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
+    int32_t ret = 0;
+    while ((ret = read(updatefile, buf, sizeof(buf))) > 0)
+    {
+        char base64_buf[CLIENT_SOFTUPDATE_PACK_SIZE * 2] = {0};
+        base64_encode(buf, ret, base64_buf);
+
+        ele_msg_t msg = {0};
+        msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE; // 客户端升级消息类型
+        msg.len = filesize;                       // 升级包长度, 客户端根据这个长度来判断是否接收完毕
+        msg.data.client_update = base64_buf;      // 升级包数据
+        msg_send(fd, &msg);                       // 发送数据
+    }
+
+}
+
 // 创建命令表
 command_t commands[] = {
     {"help", handle_help, "Show available commands"},
     {"exit", handle_exit, "Exit the program"},
     {"status", handle_status, "Show server status"},
     {"memo", handle_memo, "Handle memo actions"},
+    {"csupdate", NULL, "Handle client soft update"},
     {"users", NULL, "Show connected users"},
 };
 const char *memo_params[] = {

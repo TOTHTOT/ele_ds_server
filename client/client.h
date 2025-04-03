@@ -52,7 +52,7 @@ typedef struct
     {
         char *memo;                   // 备忘录消息
         struct weather_info *weather; // 天气消息, 7天天气
-        uint8_t *client_update;       // 客户端升级消息, 升级包数据
+        char *client_update;       // 客户端升级消息, 升级包数据
     } data;
     uint32_t len;           // 消息长度
     ele_msg_type_t msgtype; // 消息类型

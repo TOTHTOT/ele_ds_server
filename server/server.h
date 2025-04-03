@@ -19,6 +19,7 @@
 #define MAX_CLIENTNUM 30 // 最大客户端连接数
 #define MAX_MSGLEN 1024  // 最大消息长度
 #define SERVER_PORT 24680 // 服务器端口
+#define CLIENT_SOFTUPDATE_PACK_SIZE 2048 // 客户端升级包大小
 
 /* 类型定义 */
 typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len); // 客户端事件回调函数类型
