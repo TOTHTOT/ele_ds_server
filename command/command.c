@@ -40,7 +40,7 @@ void handle_status(int argc, char *args[])
         if (ele_ds_server.server.ops.connected_client != NULL)
             ele_ds_server.server.ops.connected_client(&ele_ds_server.server);
         else
-            ERROR_PRINT("No connected clients.\n");
+            ERROR_PRINT("connected_client is null.\n");
     }
     else if (strcmp(args[1], "server") == 0)
     {

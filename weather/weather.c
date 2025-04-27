@@ -66,7 +66,8 @@ int32_t get_weather(struct weather_info *weather,
         return -2;
     }
     // INFO_PRINT("weather_json: %s", weather_json); // 打印获取到的json数据
-    parse_7day_weather_json(weather_json, weather, weathersize); // 解析json数据
+    if (parse_7day_weather_json(weather_json, weather, weathersize) != 0) // 解析json数据
+        return -3;
     return 0;
 }
 
@@ -103,7 +104,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     
     if (cJSON_IsString(code))
     {
-        INFO_PRINT("code: %s\n", code->valuestring);
+        // INFO_PRINT("code: %s\n", code->valuestring);
     }
 
     // code 不对说明获取失败
@@ -118,7 +119,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     cJSON *update_time = cJSON_GetObjectItemCaseSensitive(root, "updateTime");
     if (cJSON_IsString(update_time))
     {
-        INFO_PRINT("updateTime: %s\n", update_time->valuestring);
+        // INFO_PRINT("updateTime: %s\n", update_time->valuestring);
     }
 
     // 提取 daily 数组
@@ -133,7 +134,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             if (cJSON_IsString(fx_date))
             {
                 strcpy(weather->fxDate, fx_date->valuestring);
-                INFO_PRINT("fxDate: %s\n", fx_date->valuestring);
+                // INFO_PRINT("fxDate: %s\n", fx_date->valuestring);
             }
 
             // 提取 tempMax 和 tempMin 字段
@@ -143,7 +144,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             {
                 weather->tempMax = atoi(temp_max->valuestring);
                 weather->tempMin = atoi(temp_min->valuestring);
-                INFO_PRINT("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
+                // INFO_PRINT("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
             }
 
             // 提取 textDay 和 textNight 字段
@@ -153,7 +154,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             {
                 strcpy(weather->textDay, text_day->valuestring);
                 strcpy(weather->textNight, text_night->valuestring);
-                INFO_PRINT("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
+                // INFO_PRINT("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
             }
         }
     }

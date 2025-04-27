@@ -1,3 +1,11 @@
+/*
+ * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
+ * @Date: 2025-03-25 14:34:45
+ * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
+ * @LastEditTime: 2025-04-27 15:40:53
+ * @FilePath: \ele_ds_server\client\client.c
+ * @Description: 用于处理终端发上来的消息
+ */
 #include "client.h"
 #include "../log.h"
 #include <cjson/cJSON.h>
@@ -14,9 +22,6 @@
 char *client_serialize_to_json(const ele_client_info_t *client_info)
 {
     cJSON *root = cJSON_CreateObject();
-
-    // 添加消息类型
-    cJSON_AddNumberToObject(root, "type", client_info->type);
 
     // 传感器数据
     cJSON *sensor = cJSON_CreateObject();
@@ -45,26 +50,13 @@ char *client_serialize_to_json(const ele_client_info_t *client_info)
 }
 
 /**
- * @description: 将 JSON 字符串反序列化为结构体数据, 一般服务器使用这个函数
- * @param {char} *json_str JSON 字符串
+ * @description: 解析客户端的info信息
+ * @param {cJSON} *root JSON 根节点
  * @param {ele_client_info_t} *client_info 客户端信息结构体
- * @return {int} 0:成功 -1:失败
+ * @return {int32_t} 0:成功 < 0:失败
  */
-int client_deserialize_from_json(const char *json_str, ele_client_info_t *client_info)
+static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_info)
 {
-    cJSON *root = cJSON_Parse(json_str);
-    if (root == NULL)
-        return -1;
-
-    // 解析消息类型
-    cJSON *type = cJSON_GetObjectItem(root, "type");
-    if (type && cJSON_IsNumber(type)) {
-        client_info->type = type->valueint;
-    } else {
-        cJSON_Delete(root);
-        return -1; // 缺少或无效的类型字段
-    }
-
     // 解析传感器数据
     cJSON *sensor = cJSON_GetObjectItem(root, "sensor_data");
     if (sensor)
@@ -74,6 +66,11 @@ int client_deserialize_from_json(const char *json_str, ele_client_info_t *client
         client_info->sensor_data.pressure = cJSON_GetObjectItem(sensor, "pressure")->valueint;
         client_info->sensor_data.tvoc = cJSON_GetObjectItem(sensor, "tvoc")->valueint;
         client_info->sensor_data.co2 = cJSON_GetObjectItem(sensor, "co2")->valueint;
+    }
+    else
+    {
+        ERROR_PRINT("Failed to parse sensor data\n");
+        return -1; // 解析失败
     }
 
     // 解析客户端配置
@@ -87,9 +84,97 @@ int client_deserialize_from_json(const char *json_str, ele_client_info_t *client
         client_info->cfg.version = cJSON_GetObjectItem(config, "version")->valueint;
         client_info->cfg.battery = cJSON_GetObjectItem(config, "battery")->valueint;
     }
+    else
+    {
+        ERROR_PRINT("Failed to parse config data\n");
+        return -2; // 解析失败
+    }
+    
+    return 0;
+}
+
+/**
+ * @description: 解析客户端的聊天信息
+ * @param {cJSON} *root JSON 根节点
+ * @param {ele_client_cheat_t} *client_cheat 客户端聊天信息结构体
+ * @return {int32_t} 0:成功 < 0:失败
+ */
+static int32_t client_analysis_cheatmsg(cJSON *root, ele_client_cheat_t *client_cheat)
+{
+    // 解析聊天信息
+    cJSON *cheat = cJSON_GetObjectItem(root, "cheat");
+    if (cheat)
+    {
+        strncpy(client_cheat->username, cJSON_GetObjectItem(cheat, "username")->valuestring, USER_NAME_SIZE);
+        strncpy(client_cheat->target_username, cJSON_GetObjectItem(cheat, "target_username")->valuestring, USER_NAME_SIZE);
+        strncpy(client_cheat->msg, cJSON_GetObjectItem(cheat, "msg")->valuestring, CLIENT_CHEAT_CONTENT_SIZE);
+    }
+    else
+    {
+        ERROR_PRINT("Failed to parse cheat data\n");
+        return -1; // 解析失败
+    }
+
+    return 0;
+}
+/**
+ * @description: 将 JSON 字符串反序列化为结构体数据, 一般服务器使用这个函数
+ * @param {char} *json_str JSON 字符串
+ * @param {ele_client_msg_t} *client_msg 客户端信息结构体
+ * @return {int} >= 0 成功, 返回消息类型 -1:失败
+ */
+int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *client_msg)
+{
+    if (json_str == NULL || client_msg == NULL)
+    {
+        ERROR_PRINT("Invalid argument: json_str or client_msg is NULL\n");
+        return -1; // 参数无效
+    }
+    int32_t ret = 0;
+    cJSON *root = cJSON_Parse(json_str);
+    if (root == NULL)
+        return -2;
+
+    // 解析消息类型
+    cJSON *type = cJSON_GetObjectItem(root, "type");
+    if (type && cJSON_IsNumber(type))
+    {
+        client_msg->type = type->valueint;
+    }
+    else
+    {
+        cJSON_Delete(root);
+        ERROR_PRINT("Failed to parse type\n");
+        return -3; // 缺少或无效的类型字段
+    }
+
+    // 默认返回消息类型, 出错的话返回负数
+    ret = client_msg->type;
+    // 解析消息类型
+    switch (client_msg->type)
+    {
+    case ELE_CLIENTMSG_INFO:
+        if (client_analysis_infomsg(root, &client_msg->msg.client_info) != 0)
+        {
+            ERROR_PRINT("Failed to parse client info\n");
+            ret = -4; // 解析失败
+        }
+        break;
+    case ELE_CLIENTMSG_CHEAT:
+        if (client_analysis_cheatmsg(root, &client_msg->msg.cheat) != 0)
+        {
+            ERROR_PRINT("Failed to parse client cheat\n");
+            ret = -5; // 解析失败
+        }
+        break;
+    default:
+        ERROR_PRINT("Invalid type: %d\n", client_msg->type);
+        ret = -6; // 无效的类型
+        break;
+    }
 
     cJSON_Delete(root);
-    return 0;
+    return ret;
 }
 
 /**
@@ -114,7 +199,6 @@ int8_t client_show_info(const ele_client_info_t *client_info)
             time_str[strlen(time_str) - 1] = '\0';
         }
         printf("\nRecv time:%s, Parsed Data:\n", time_str);
-        printf("Type: %u\n", client_info->type);
         printf("Username: %s\n", client_info->cfg.username);
         printf("City: %s\n", client_info->cfg.cityname);
         printf("City ID: %u\n", client_info->cfg.cityid);
@@ -223,36 +307,27 @@ int32_t msg_send(int fd, ele_msg_t *msg)
  * @param {uint32_t} len 接收数据长度
  * @return {*}
  */
-int32_t client_event_handler(int32_t fd, char *buf, uint32_t len)
+int32_t client_event_handler(int32_t fd, char *buf, uint32_t len, ele_client_msg_t *client_msg)
 {
-    ele_client_info_t client_info = {0};
+    if (buf == NULL || len == 0 || client_msg == NULL)
+    {
+        ERROR_PRINT("buf is NULL or len is %d\n", len);
+        return -1; // 无效参数
+    }
+
+    int32_t ret = 0;
     (void)len; // 防止编译器报错
+    (void)fd;
     
-    if (client_deserialize_from_json(buf, &client_info) == 0) // 解析客户端发送过来的数据
+    ret = client_deserialize_from_json(buf, client_msg);
+    if (ret < 0)
     {
-        if (client_show_info(&client_info) != 0) // 显示客户端信息
-        {
-            ERROR_PRINT("client_show_info failed\n");
-            return -2;
-        }
-        struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
-        memset(weather, 0, sizeof(weather));          // 初始化结构体
-        get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_info.cfg.cityid);
-        // 测试消息发送
-        ele_msg_t msg = {
-            .msgtype = ELE_SERVERMSG_WEATHER,
-            .len = 7,
-            .data.weather = weather,
-        };
-        msg_send(fd, &msg);
-        return 1; // 处理信息成功这是要发送天气信息
+        ERROR_PRINT("deserialize from json failed\n");
+        return -2;
     }
-    else
-    {
-        ERROR_PRINT("client_deserialize_from_json failed\n");
-        return -1;
-    }
-    return 0;
+
+    ret = 0;
+    return ret;
 }
 
 #if 0

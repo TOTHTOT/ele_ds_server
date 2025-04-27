@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:17
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-27 10:15:51
+ * @LastEditTime: 2025-04-27 15:19:40
  * @FilePath: \ele_ds_server\server\server.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -30,12 +30,16 @@
 #define CLIENT_SOFTUPDATE_PACK_SIZE 2048 // 客户端升级包大小
 
 /* 类型定义 */
-typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len); // 客户端事件回调函数类型
+typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len, ele_client_msg_t *client_msg); // 客户端事件回调函数类型
 typedef struct server
 {
     int server_sockfd;                       // 服务器socket描述符
     struct sockaddr_in server_addr;          // 服务器地址
-    struct pollfd fds[MAX_CLIENTNUM + 1]; // 客户端文件描述符数组, 0号元素存放服务器socket描述符
+    struct
+    {
+        struct pollfd fds[MAX_CLIENTNUM + 1];             // 客户端文件描述符数组, 0号元素存放服务器socket描述符
+        char username[MAX_CLIENTNUM + 1][USER_NAME_SIZE]; // 客户端用户名数组, 用于存储客户端的用户名
+    } clients;
     int client_count;                        // 当前连接的客户端数量
     client_event_cb client_event_handler;    // 客户端事件回调函数
     

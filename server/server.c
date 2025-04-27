@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-27 10:31:55
+ * @LastEditTime: 2025-04-27 15:45:53
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -79,14 +79,16 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
     {
         if (i == 0)
         {
-            server->fds[i].fd = server->server_sockfd; // 0号元素存放服务器socket描述符
+            server->clients.fds[i].fd = server->server_sockfd; // 0号元素存放服务器socket描述符
+            strcpy(server->clients.username[i], "root"); // 服务器用户名为root
         }
         else
         {
-            server->fds[i].fd = -1; // 初始化客户端socket为-1
+            server->clients.fds[i].fd = -1; // 初始化客户端socket为-1
+            strcpy(server->clients.username[i], ""); // 初始化用户名为空
         }
-        server->fds[i].events = POLLIN; // 设置监听POLLIN事件
-        // INFO_PRINT("fds[%d].fd = %d\n", i, server->fds[i].fd);
+        server->clients.fds[i].events = POLLIN; // 设置监听POLLIN事件
+        // INFO_PRINT("clients.fds[%d].fd = %d\n", i, server->clients.fds[i].fd);
     }
     server->client_event_handler = cb; // 设置客户端事件回调函数
     server->client_count = 0; // 初始化客户端数量为0
@@ -113,9 +115,9 @@ static int32_t server_show_cntclient(server_t *server)
     // 从1开始, 0是服务器
     for (int i = 1; i < MAX_CLIENTNUM; i++)
     {
-        if (server->fds[i].fd != -1)
+        if (server->clients.fds[i].fd != -1)
         {
-            printf("Client %d: %d\n", i, ele_ds_server.server.fds[i].fd);
+            printf("Client[%d]: fd = %d, name = %s\n", i, ele_ds_server.server.clients.fds[i].fd, server->clients.username[i]);
         }
     }
     return 0;
@@ -228,10 +230,10 @@ static int8_t server_events(server_t *server)
     {
         for (int i = 1; i <= MAX_CLIENTNUM; i++)
         {
-            if (server->fds[i].fd == -1)
+            if (server->clients.fds[i].fd == -1)
             {
-                server->fds[i].fd = client_sockfd;
-                server->fds[i].events = POLLIN;
+                server->clients.fds[i].fd = client_sockfd;
+                server->clients.fds[i].events = POLLIN;
                 set_nonblocking(client_sockfd);
                 server->client_count++;
                 INFO_PRINT("New client connected: %d\n", client_sockfd);
@@ -248,6 +250,64 @@ static int8_t server_events(server_t *server)
 }
 
 /**
+ * @description: 处理客户端消息
+ * @param {server_t} *server 服务器
+ * @param {uint32_t} index 客户端索引 
+ * @param {ele_client_msg_t} *client_msg 客户端消息
+ * @return {int32_t} 0 成功; -1 参数错误; -2 解析失败; -3 处理失败
+ */
+static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_client_msg_t *client_msg)
+{
+    if (!server || !client_msg)
+        return -1;
+
+    int32_t ret = 0;
+    int32_t fd = server->clients.fds[index].fd;
+    
+    switch (client_msg->type)
+    {
+    case ELE_CLIENTMSG_INFO:
+        INFO_PRINT("Received client info message\n");
+        if (client_show_info(&client_msg->msg.client_info) != 0) // 显示客户端信息
+        {
+            ERROR_PRINT("client_show_info failed\n");
+            ret = -3;
+            break;
+        }
+        struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
+        memset(weather, 0, sizeof(weather));          // 初始化结构体
+        if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->msg.client_info.cfg.cityid) == 0)
+        {
+            // 测试消息发送
+            ele_msg_t msg = {
+                .msgtype = ELE_SERVERMSG_WEATHER,
+                .len = 7,
+                .data.weather = weather,
+            };
+            msg_send(fd, &msg);
+        }
+        else
+        {
+            ret = -3;
+            WARNING_PRINT("get_weather failed\n");
+        }
+        break;
+    case ELE_CLIENTMSG_CHEAT:
+        INFO_PRINT("Received client cheat message\n");
+        /* 转发消息到对应客户端:
+        1. 需要先检测对应客户端是否在线;
+        2. 数据库内是否有这个用户; */
+        break;
+    default:
+        ERROR_PRINT("deserialize from json failed\n");
+        ret = -2;
+        break;
+    }
+
+    return ret;
+}
+
+/**
  * @description: 处理客户端事件
  * @param {server_t} *server 服务器
  * @param {int32_t} i 客户端索引
@@ -261,37 +321,43 @@ static int8_t client_events(server_t *server, int32_t i)
     }
 
     char buffer[MAX_MSGLEN] = {0};
-    int32_t valread = read(server->fds[i].fd, buffer, sizeof(buffer));
+    int32_t valread = read(server->clients.fds[i].fd, buffer, sizeof(buffer));
     if (valread == 0)
     {
         // 客户端断开连接
-        INFO_PRINT("Client %d disconnected\n", server->fds[i].fd);
-        close(server->fds[i].fd);
+        INFO_PRINT("Client %d disconnected\n", server->clients.fds[i].fd);
+        close(server->clients.fds[i].fd);
         // 将该客户端从pollfd数组中移除, 并清空对应事件
-        server->fds[i].fd = -1;
-        server->fds[i].events = 0;
-        server->fds[i].revents = 0;
+        server->clients.fds[i].fd = -1;
+        strcpy(server->clients.username[i], "");
+        server->clients.fds[i].events = 0;
+        server->clients.fds[i].revents = 0;
         server->client_count--;
     }
     else
     {
+        ele_client_msg_t client_msg = {0};
         // 处理接收到的消息
         buffer[valread] = '\0';
-        INFO_PRINT("i = %d, fd = %d, Received message: %s", i, server->fds[i].fd, buffer);
+        INFO_PRINT("i = %d, fd = %d, Received message: %s", i, server->clients.fds[i].fd, buffer);
         // 回复客户端
         char reply[MAX_MSGLEN] = {0};
         sprintf(reply, "Server received len: %ld", strlen(buffer));
         if (server->client_event_handler != NULL)
         {
-            int32_t ret = server->client_event_handler(server->fds[i].fd, buffer, strlen(buffer));
+            int32_t ret = server->client_event_handler(server->clients.fds[i].fd, buffer, strlen(buffer), &client_msg);
             if (ret < 0) // 处理客户端事件
             {
-                ERROR_PRINT("client_event_handler failed, ret = %d\n", ret);
+                WARNING_PRINT("client_event_handler failed, ret = %d\n", ret);
+            }
+            if (handle_client_msg(server, i, &client_msg) != 0)
+            {
+                WARNING_PRINT("handle_client_msg failed\n");
             }
         }
         else
             WARNING_PRINT("client_event_handler is NULL\n");
-        send(server->fds[i].fd, reply, strlen(reply), 0);
+        send(server->clients.fds[i].fd, reply, strlen(reply), 0);
     }
     return 0;
 }
@@ -303,7 +369,7 @@ static int8_t client_events(server_t *server, int32_t i)
  */
 void server_handle_clients(server_t *server)
 {
-    int ret = poll(server->fds, server->client_count + 1, 500); // 阻塞等待事件, 超时处理避免不能退出
+    int ret = poll(server->clients.fds, server->client_count + 1, 500); // 阻塞等待事件, 超时处理避免不能退出
     if (ret == -1)
     {
         perror("poll failed");
@@ -312,21 +378,21 @@ void server_handle_clients(server_t *server)
     for (int32_t i = 0; i <= MAX_CLIENTNUM; i++)
     {
         // 处理服务器事件, 检查server_sockfd是否有新的连接请求
-        if (server->fds[i].fd == server->server_sockfd)
+        if (server->clients.fds[i].fd == server->server_sockfd)
         {
             server_events(server);
         }
         // 处理客户端事件
-        else if (server->fds[i].revents & POLLIN)
+        else if (server->clients.fds[i].revents & POLLIN)
         {
             client_events(server, i);
         }
         else
         {
-            if (server->fds[i].revents != 0)
+            if (server->clients.fds[i].revents != 0)
             {
                 WARNING_PRINT("pollfd[%d].revents = %#x, fd = %d, server fd = %d\n",
-                              i, server->fds[i].revents, server->fds[i].fd, server->server_sockfd);
+                              i, server->clients.fds[i].revents, server->clients.fds[i].fd, server->server_sockfd);
             }
         }
     }
@@ -342,15 +408,16 @@ int32_t server_close(server_t *server)
     // 关闭所有客户端连接
     for (int i = 1; i <= MAX_CLIENTNUM; i++)
     {
-        if (server->fds[i].fd != -1)
+        if (server->clients.fds[i].fd != -1)
         {
-            // printf("Shutting down client %d\n", server->fds[i].fd);
-            send(server->fds[i].fd, "SERVER_SHUTDOWN", strlen("SERVER_SHUTDOWN"), 0);
-            shutdown(server->fds[i].fd, SHUT_RDWR); // 关闭读写
-            close(server->fds[i].fd);
-            server->fds[i].fd = -1;
-            server->fds[i].events = 0;
-            server->fds[i].revents = 0;
+            // printf("Shutting down client %d\n", server->clients.fds[i].fd);
+            send(server->clients.fds[i].fd, "SERVER_SHUTDOWN", strlen("SERVER_SHUTDOWN"), 0);
+            shutdown(server->clients.fds[i].fd, SHUT_RDWR); // 关闭读写
+            close(server->clients.fds[i].fd);
+            server->clients.fds[i].fd = -1;
+            strcpy(server->clients.username[i], "");
+            server->clients.fds[i].events = 0;
+            server->clients.fds[i].revents = 0;
         }
     }
     server->client_count = 0;
@@ -358,9 +425,10 @@ int32_t server_close(server_t *server)
     close(server->server_sockfd);
     // usleep(1000*1000);
     server->server_sockfd = -1; // 关闭后置-1
-    server->fds[0].fd = -1;
-    server->fds[0].events = 0;
-    server->fds[0].revents = 0;
+    server->clients.fds[0].fd = -1;
+    strcpy(server->clients.username[0], "");
+    server->clients.fds[0].events = 0;
+    server->clients.fds[0].revents = 0;
     printf("Server stopped.\n");
     return 0;
 }
