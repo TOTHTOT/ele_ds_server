@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-17 13:28:57
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-27 10:23:40
+ * @LastEditTime: 2025-04-27 11:32:59
  * @FilePath: \ele_ds_server\common\common.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -162,5 +162,76 @@ int32_t base64_encode(const unsigned char *input, size_t length, char *output, s
     }
     output[j] = '\0';
 
+    return 0;
+}
+
+static unsigned char base64_dec_table[256] = {0x80};
+__attribute__((constructor)) // 构造函数, 在main函数之前执行
+void base64_init(void)
+{
+    base64_dec_table['A'] = 0; base64_dec_table['B'] = 1; base64_dec_table['C'] = 2;
+    base64_dec_table['D'] = 3; base64_dec_table['E'] = 4; base64_dec_table['F'] = 5;
+    base64_dec_table['G'] = 6; base64_dec_table['H'] = 7; base64_dec_table['I'] = 8;
+    base64_dec_table['J'] = 9; base64_dec_table['K'] = 10; base64_dec_table['L'] = 11;
+    base64_dec_table['M'] = 12; base64_dec_table['N'] = 13; base64_dec_table['O'] = 14;
+    base64_dec_table['P'] = 15; base64_dec_table['Q'] = 16; base64_dec_table['R'] = 17;
+    base64_dec_table['S'] = 18; base64_dec_table['T'] = 19; base64_dec_table['U'] = 20;
+    base64_dec_table['V'] = 21; base64_dec_table['W'] = 22; base64_dec_table['X'] = 23;
+    base64_dec_table['Y'] = 24; base64_dec_table['Z'] = 25;
+    base64_dec_table['a'] = 26; base64_dec_table['b'] = 27; base64_dec_table['c'] = 28;
+    base64_dec_table['d'] = 29; base64_dec_table['e'] = 30; base64_dec_table['f'] = 31;
+    base64_dec_table['g'] = 32; base64_dec_table['h'] = 33; base64_dec_table['i'] = 34;
+    base64_dec_table['j'] = 35; base64_dec_table['k'] = 36; base64_dec_table['l'] = 37;
+    base64_dec_table['m'] = 38; base64_dec_table['n'] = 39; base64_dec_table['o'] = 40;
+    base64_dec_table['p'] = 41; base64_dec_table['q'] = 42; base64_dec_table['r'] = 43;
+    base64_dec_table['s'] = 44; base64_dec_table['t'] = 45; base64_dec_table['u'] = 46;
+    base64_dec_table['v'] = 47; base64_dec_table['w'] = 48; base64_dec_table['x'] = 49;
+    base64_dec_table['y'] = 50; base64_dec_table['z'] = 51;
+    base64_dec_table['0'] = 52; base64_dec_table['1'] = 53; base64_dec_table['2'] = 54;
+    base64_dec_table['3'] = 55; base64_dec_table['4'] = 56; base64_dec_table['5'] = 57;
+    base64_dec_table['6'] = 58; base64_dec_table['7'] = 59; base64_dec_table['8'] = 60;
+    base64_dec_table['9'] = 61; base64_dec_table['+'] = 62; base64_dec_table['/'] = 63;
+    base64_dec_table['='] = 0;
+}
+/**
+ * @description: Base64 解码
+ * @param {char} *input 输入数据
+ * @param {size_t} length 输入数据长度
+ * @param {unsigned char} *output 输出数据缓冲区, 要比input小33%
+ * @param {size_t} *output_length 输出数据长度
+ * @return {int32_t} 0: 成功, -EINVAL: 输入参数无效
+ */
+int32_t base64_decode(const char *input, size_t length, unsigned char *output, size_t *output_length)
+{
+    if (!input || !output || !output_length)
+        return -EINVAL;
+
+    size_t i = 0, j = 0;
+    unsigned char quad[4];
+    size_t quad_index = 0;
+
+    while (i < length)
+    {
+        unsigned char c = input[i++];
+
+        if (c == '\0') break;  // 防止奇怪的输入
+
+        if (base64_dec_table[c] & 0x80)
+            continue; // 跳过非法字符，比如换行、空格
+
+        quad[quad_index++] = base64_dec_table[c];
+
+        if (quad_index == 4)
+        {
+            output[j++] = (quad[0] << 2) | (quad[1] >> 4);
+            if (input[i - 2] != '=')
+                output[j++] = (quad[1] << 4) | (quad[2] >> 2);
+            if (input[i - 1] != '=')
+                output[j++] = (quad[2] << 6) | quad[3];
+            quad_index = 0;
+        }
+    }
+
+    *output_length = j;
     return 0;
 }
