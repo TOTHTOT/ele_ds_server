@@ -14,6 +14,10 @@
 // 命令处理函数原型
 typedef void (*command_func_t)(int argc, char *args[]);
 
+/* 函数声明 */
+void handle_status(int argc, char *args[]);
+void handle_help(int argc, char *args[]);
+
 // 简单的命令结构体
 typedef struct
 {
@@ -92,32 +96,26 @@ void handle_memo(int argc, char *args[])
     }
     else if (strcmp(args[1], "send") == 0)
     {
-        int fd = atoi(args[2]);
-        // 处理消息，支持带空格的字符串
-        char raw_msg[256] = {0};
-        for (int i = 3; i < argc; i++)
+        if (argc < 4)
+            printf("Usage: memo send <fd> <msg>\n");
+        else
         {
-            strcat(raw_msg, args[i]);
-            if (i < argc - 1)
-                strcat(raw_msg, " ");
+            int fd = atoi(args[2]);
+            // 处理消息，支持带空格的字符串
+            char raw_msg[256] = {0};
+            for (int i = 3; i < argc; i++)
+            {
+                strcat(raw_msg, args[i]);
+                if (i < argc - 1)
+                    strcat(raw_msg, " ");
+            }
+            ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
         }
-        ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
     }
     else
     {
         printf("Unknown memo parameter: %s\n", args[1]);
     }
-}
-
-// 处理 help 命令
-void handle_help(int argc, char *args[])
-{
-    (void)argc; // 忽略参数数量
-    (void)args; // 忽略参数列表
-    printf("Available commands: help, exit, status, memo, users\n");
-    printf("Usage:\n");
-    printf("  memo <help|send>\n");
-    printf("  status <clients|server>\n");
 }
 
 // 处理 exit 命令
@@ -158,6 +156,27 @@ command_t commands[] = {
     {"csupdate", handle_csupdate, "Handle client soft update"},
     {"users", NULL, "Show connected users"},
 };
+#define CMD_COUNT (sizeof(commands) / sizeof(commands[0]))
+// 处理 help 命令
+void handle_help(int argc, char *args[])
+{
+    (void)argc; // 忽略参数数量
+    (void)args; // 忽略参数列表
+
+    // 输出 commands
+    printf("Available commands:\n");
+    for (size_t i = 0; i < CMD_COUNT; i++)
+    {
+        printf("  %s: %s\n", commands[i].name, commands[i].usage);
+    }
+
+
+    // printf("Available commands: help, exit, status, memo, users\n");
+    // printf("Usage:\n");
+    // printf("  memo <help|send>\n");
+    // printf("  status <clients|server>\n");
+}
+
 const char *memo_params[] = {
     "help",
     "send",
