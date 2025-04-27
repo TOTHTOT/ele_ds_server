@@ -8,6 +8,7 @@
    - 如果安装不了就手动安装`./resource/libcjson-dev_1.7.15-1_amd64.deb`和`libcjson1_1.7.15-1_amd64.deb`.
  - glib `sudo apt-get install libglib2.0-dev`
    - 如果报错找不到`libconfig.h` 就咋`Makefile`添加 `-I/usr/lib/x86_64-linux-gnu/glib-2.0/include/`
+ - readline `sudo apt-get install libreadline-dev`
 
 ## 终端连接服务器说明
 
