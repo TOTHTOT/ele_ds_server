@@ -1,3 +1,11 @@
+/*
+ * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
+ * @Date: 2025-03-25 14:44:17
+ * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
+ * @LastEditTime: 2025-04-27 10:15:51
+ * @FilePath: \ele_ds_server\server\server.h
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 
 #ifndef __SERVER_H__
 #define __SERVER_H__
@@ -38,6 +46,7 @@ typedef struct server
     {
         int32_t (*connected_client)(struct server *server);
         int32_t (*send_memo)(struct server *server, int32_t fd, char *buf, uint32_t len);
+        int32_t (*update_pack_send)(struct server *server, int32_t fd, char *path);
     }ops;
     
 } server_t;

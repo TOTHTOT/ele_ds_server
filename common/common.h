@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-17 13:29:03
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 17:28:29
+ * @LastEditTime: 2025-04-27 10:32:32
  * @FilePath: \ele_ds_server\common.h
  * @Description: 通用库, 一些工具函数
  */
@@ -23,7 +23,7 @@ extern int32_t get_data_byurl(char *url,
                               char *data,
                               uint32_t datasize,
                               curl_cb write_callback);
-extern void base64_encode(const unsigned char *input, size_t length, char *output);
+extern int32_t base64_encode(const unsigned char *input, size_t length, char *output, size_t output_size);
 extern void hex_to_bytes(const char *hex, unsigned char *bytes, size_t *length);
 
 #endif /* __COMMON_H__ */

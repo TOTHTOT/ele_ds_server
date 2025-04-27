@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-17 13:28:57
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 17:20:01
+ * @LastEditTime: 2025-04-27 10:23:40
  * @FilePath: \ele_ds_server\common\common.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -108,13 +108,25 @@ void hex_to_bytes(const char *hex, unsigned char *bytes, size_t *length)
     }
 }
 
-// Base64 编码
-void base64_encode(const unsigned char *input, size_t length, char *output)
+/**
+ * @description: Base64 编码
+ * @param {unsigned char} *input 输入数据
+ * @param {size_t} length 输入数据长度
+ * @param {char} *output 输出数据缓冲区, 要比input大33%
+ * @param {size_t} output_size 输出数据缓冲区大小
+ * @return {int32_t} 0: 成功, -ENOMEM: 输出缓冲区不够大
+ */
+int32_t base64_encode(const unsigned char *input, size_t length, char *output, size_t output_size)
 {
     size_t i = 0, j = 0;
     unsigned char triple[3];
     unsigned char quartet[4];
 
+    // 如果output不够大直接返回
+    if (length == 0 || output_size < ((length + 2) / 3) * 4 + 1)
+    {
+        return -ENOMEM;
+    }
     while (length--)
     {
         triple[i++] = *(input++);
@@ -149,4 +161,6 @@ void base64_encode(const unsigned char *input, size_t length, char *output)
             output[j++] = '=';
     }
     output[j] = '\0';
+
+    return 0;
 }

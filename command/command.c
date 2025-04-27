@@ -47,6 +47,8 @@ void handle_status(int argc, char *args[])
         printf("Unknown status parameter: %s\n", args[1]);
     }
 }
+
+#if 0
 /**
  * @description: 处理 memo send 命令
  * @param {int} argc 参数数量
@@ -73,6 +75,7 @@ void handle_memo_send(int argc, char **args)
     }
     ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
 }
+#endif /* 0 */
 
 // 处理 memo 命令
 void handle_memo(int argc, char *args[])
@@ -89,7 +92,16 @@ void handle_memo(int argc, char *args[])
     }
     else if (strcmp(args[1], "send") == 0)
     {
-        handle_memo_send(argc, args);
+        int fd = atoi(args[2]);
+        // 处理消息，支持带空格的字符串
+        char raw_msg[256] = {0};
+        for (int i = 3; i < argc; i++)
+        {
+            strcat(raw_msg, args[i]);
+            if (i < argc - 1)
+                strcat(raw_msg, " ");
+        }
+        ele_ds_server.server.ops.send_memo(&ele_ds_server.server, fd, raw_msg, strlen(raw_msg));
     }
     else
     {
@@ -131,33 +143,10 @@ void handle_csupdate(int argc, char *args[])
         printf("Usage: csupdate <fd> <path>\n");
         return;
     }
+
     int fd = atoi(args[1]);
     char *path = args[2];
-
-    // 升级包通过json发送, 每次发送10k, 直到发送完毕
-    int32_t updatefile = open(path, O_RDONLY);
-    if (updatefile == -1)
-    {
-        ERROR_PRINT("open %s failed: %s\n", path, strerror(errno));
-        return;
-    }
-    uint32_t filesize = lseek(updatefile, 0, SEEK_END);
-    lseek(updatefile, 0, SEEK_SET);
-
-    uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
-    int32_t ret = 0;
-    while ((ret = read(updatefile, buf, sizeof(buf))) > 0)
-    {
-        char base64_buf[CLIENT_SOFTUPDATE_PACK_SIZE * 2] = {0};
-        base64_encode(buf, ret, base64_buf);
-
-        ele_msg_t msg = {0};
-        msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE; // 客户端升级消息类型
-        msg.len = filesize;                       // 升级包长度, 客户端根据这个长度来判断是否接收完毕
-        msg.data.client_update = base64_buf;      // 升级包数据
-        msg_send(fd, &msg);                       // 发送数据
-    }
-
+    ele_ds_server.server.ops.update_pack_send(&ele_ds_server.server, fd, path);
 }
 
 // 创建命令表
@@ -166,7 +155,7 @@ command_t commands[] = {
     {"exit", handle_exit, "Exit the program"},
     {"status", handle_status, "Show server status"},
     {"memo", handle_memo, "Handle memo actions"},
-    {"csupdate", NULL, "Handle client soft update"},
+    {"csupdate", handle_csupdate, "Handle client soft update"},
     {"users", NULL, "Show connected users"},
 };
 const char *memo_params[] = {

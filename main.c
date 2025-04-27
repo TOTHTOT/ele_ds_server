@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:35:51
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 11:44:32
+ * @LastEditTime: 2025-04-27 10:37:47
  * @FilePath: \ele_ds_server\main.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -79,7 +79,7 @@ void signal_handler(int signo)
         size = backtrace(array, 10);
         fprintf(stderr, "Error: signal %d:\n", signo);
         backtrace_symbols_fd(array, size, STDERR_FILENO);
-
+        ele_ds_server.exitflag = true;
         break;
     }
     default:

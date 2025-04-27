@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 13:50:01
+ * @LastEditTime: 2025-04-27 10:31:55
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -11,9 +11,11 @@
 #include "../client/client.h"
 #include "main.h"
 #include <cjson/cJSON.h>
+#include "common.h"
 
 static int32_t server_show_cntclient(server_t *server);
 static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len);
+static int32_t server_send_update_pack(struct server *server, int32_t fd, char *path);
 
 void set_nonblocking(int fd)
 {
@@ -91,6 +93,7 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
     
     server->ops.connected_client = server_show_cntclient; // 设置操作函数
     server->ops.send_memo = server_send_memo; // 设置发送备忘录函数
+    server->ops.update_pack_send = server_send_update_pack; // 设置发送升级包函数
     return 0;
 }
 
@@ -137,6 +140,55 @@ static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, ui
     msg.msgtype = ELE_SERVERMSG_MEMO; // 备忘录消息类型
     msg.data.memo = buf;              // 备忘录数据
     return msg_send(fd, &msg);    // 发送数据
+}
+
+/**
+ * @description: 发送升级包到客户端
+ * @param {server} *server 服务器
+ * @param {int32_t} fd 客户端文件描述符
+ * @param {char} *path 升级包路径
+ * @return {int32_t} 0 成功; -1 失败; -2 打开文件失败
+ */
+static int32_t server_send_update_pack(struct server *server, int32_t fd, char *path)
+{
+    if (server == NULL || path == NULL)
+    {
+        return -1;
+    }
+
+    // 升级包通过json发送, 每次发送10k, 直到发送完毕
+    int32_t updatefile = open(path, O_RDONLY);
+    if (updatefile == -1)
+    {
+        ERROR_PRINT("open %s failed: %s\n", path, strerror(errno));
+        return -2;
+    }
+    uint32_t filesize = lseek(updatefile, 0, SEEK_END);
+    lseek(updatefile, 0, SEEK_SET);
+
+    uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
+    int32_t ret = 0;
+    while ((ret = read(updatefile, buf, sizeof(buf))) > 0)
+    {
+        char base64_buf[CLIENT_SOFTUPDATE_PACK_SIZE * 2] = {0};
+        if (base64_encode(buf, ret, base64_buf, sizeof(base64_buf)) == 0) // 编码成base64格式
+        {
+            ele_msg_t msg = {0};
+            msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE; // 客户端升级消息类型
+            msg.len = filesize;                       // 升级包长度, 客户端根据这个长度来判断是否接收完毕
+            msg.data.client_update = base64_buf;      // 升级包数据
+            msg_send(fd, &msg);                       // 发送数据
+        }
+        else
+        {
+            ERROR_PRINT("base64_encode failed\n");
+            close(updatefile);
+        }
+        memset(buf, 0, sizeof(buf)); // 清空buf
+        memset(base64_buf, 0, sizeof(base64_buf)); // 清空base64_buf
+    }
+
+    return 0;
 }
 
 /**
