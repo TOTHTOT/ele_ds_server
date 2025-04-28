@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:53
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-27 14:01:03
+ * @LastEditTime: 2025-04-28 17:25:03
  * @FilePath: \ele_ds_server\client\client.h
  * @Description: 用于处理终端发上来的消息
  */
@@ -17,6 +17,7 @@
 
 /* 宏定义 */
 #define USER_NAME_SIZE 20 // 用户名最大长度
+#define USER_PASSWD_SIZE 20 // 密码最大长度
 #define CITY_NAME_SIZE 20 // 城市名字最大长度
 #define CLIENT_CHEAT_CONTENT_SIZE 256 // 备忘录消息最大长度
 
@@ -45,6 +46,7 @@ typedef struct
 typedef struct
 {
     char username[USER_NAME_SIZE];
+    char passwd[USER_PASSWD_SIZE];
     char cityname[CITY_NAME_SIZE];
     uint32_t cityid;             // 城市ID 和 cityname 对应, 查询天气使用
     uint16_t cntserver_interval; // 连接服务器间隔时间

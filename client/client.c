@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-27 15:40:53
+ * @LastEditTime: 2025-04-28 17:41:50
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -37,6 +37,7 @@ char *client_serialize_to_json(const ele_client_info_t *client_info)
     // 客户端配置
     cJSON *config = cJSON_CreateObject();
     cJSON_AddStringToObject(config, "username", client_info->cfg.username);
+    cJSON_AddStringToObject(config, "passwd", client_info->cfg.passwd);
     cJSON_AddStringToObject(config, "cityname", client_info->cfg.cityname);
     cJSON_AddNumberToObject(config, "cityid", client_info->cfg.cityid);
     cJSON_AddNumberToObject(config, "cntserver_interval", client_info->cfg.cntserver_interval);
@@ -80,6 +81,7 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
     if (config)
     {
         strncpy(client_info->cfg.username, cJSON_GetObjectItem(config, "username")->valuestring, USER_NAME_SIZE);
+        strncpy(client_info->cfg.passwd, cJSON_GetObjectItem(config, "passwd")->valuestring, USER_PASSWD_SIZE);
         strncpy(client_info->cfg.cityname, cJSON_GetObjectItem(config, "cityname")->valuestring, CITY_NAME_SIZE);
         client_info->cfg.cityid = cJSON_GetObjectItem(config, "cityid")->valueint;
         client_info->cfg.cntserver_interval = cJSON_GetObjectItem(config, "cntserver_interval")->valueint;
@@ -142,6 +144,7 @@ int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *cli
     if (type && cJSON_IsNumber(type))
     {
         client_msg->type = type->valueint;
+        LOG_D("Parsed type: %d\n", client_msg->type);
     }
     else
     {
@@ -202,6 +205,7 @@ int8_t client_show_info(const ele_client_info_t *client_info)
         }
         printf("\nRecv time:%s, Parsed Data:\n", time_str);
         printf("Username: %s\n", client_info->cfg.username);
+        printf("Password: %s\n", client_info->cfg.passwd);
         printf("City: %s\n", client_info->cfg.cityname);
         printf("City ID: %u\n", client_info->cfg.cityid);
         printf("Interval: %u sec\n", client_info->cfg.cntserver_interval);

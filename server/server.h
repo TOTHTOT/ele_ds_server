@@ -22,6 +22,7 @@
 #include <poll.h>
 #include <glib.h>
 #include "../client/client.h"
+#include "../users/users.h"
 
 /* 宏定义 */
 #define MAX_CLIENTNUM 30 // 最大客户端连接数
@@ -53,6 +54,7 @@ typedef struct server
         int32_t (*update_pack_send)(struct server *server, int32_t fd, char *path);
     }ops;
     
+    sqlite3 *users_db; // 用户数据库句柄
 } server_t;
 
 typedef struct 
