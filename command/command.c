@@ -1,6 +1,5 @@
 #include "command.h"
 #include "../main.h"
-#include "../log.h"
 #include "../server/server.h"
 #include "../common/common.h"
 #include <stdio.h>
@@ -9,6 +8,10 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+
+#define LOG_TAG "command"
+#define LOG_LEVEL LOG_LVL_DEBUG
+#include "log.h"
 #define MAX_ARGS 10 // 最大参数数量
 
 // 命令处理函数原型
@@ -40,7 +43,7 @@ void handle_status(int argc, char *args[])
         if (ele_ds_server.server.ops.connected_client != NULL)
             ele_ds_server.server.ops.connected_client(&ele_ds_server.server);
         else
-            ERROR_PRINT("connected_client is null.\n");
+            LOG_E("connected_client is null.\n");
     }
     else if (strcmp(args[1], "server") == 0)
     {

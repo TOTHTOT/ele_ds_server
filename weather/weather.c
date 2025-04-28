@@ -1,7 +1,11 @@
 #include "weather.h"
 #include "common.h"
-#include "log.h"
 #include <cjson/cJSON.h>
+
+
+#define LOG_TAG "weather"
+#define LOG_LEVEL LOG_LVL_WARNING
+#include "log.h"
 
 static int8_t parse_7day_weather_json(const char *json_string, struct weather_info *weather, uint32_t weathersize);
 
@@ -20,16 +24,16 @@ size_t get_weather_cb(void *ptr, size_t size, size_t nmemb, void *userdata)
     // print_hex(ptr, total_size); // 打印数据到控制台
     if (total_size > 4096)
     {
-        ERROR_PRINT("Data too big: %d", total_size);
+        LOG_E("Data too big: %d", total_size);
         return -1;
     }
     if (userdata == NULL)
     {
-        ERROR_PRINT("Invalid argument: userdata is NULL");
+        LOG_E("Invalid argument: userdata is NULL");
         return -2;
     }
     memcpy(userdata, ptr, total_size); // 将数据拷贝到userdata
-    // INFO_PRINT("len = %d, data = %s", (int)total_size, (char *)ptr); // 打印数据到控制台
+    // LOG_I("len = %d, data = %s", (int)total_size, (char *)ptr); // 打印数据到控制台
     return total_size;
 }
 
@@ -48,24 +52,24 @@ int32_t get_weather(struct weather_info *weather,
 {
     if (weather == NULL || weathersize > WEATHER_DAY_MAX || cityid == 0)
     {
-        ERROR_PRINT("Invalid argument: weather is NULL or weathersize too big"); // 记录错误日志
+        LOG_E("Invalid argument: weather is NULL or weathersize too big"); // 记录错误日志
         return -1; // Invalid argument
     }
     (void)start_time; // 防止编译器报错
     int32_t ret = 0;
     char day7_api[sizeof(WEATHER_API_7D_HTTP) + 10] = {0}; // uint32_t 最大值为10位数
     sprintf(day7_api, "%s%d", WEATHER_API_7D_HTTP, cityid);
-    INFO_PRINT("api: %s", day7_api); 
+    LOG_I("api: %s", day7_api); 
 
     // 通过api获取原始json数据
     char weather_json[4096] = {0};
     ret = get_data_byurl(day7_api, sizeof(day7_api), weather_json,sizeof(weather_json), get_weather_cb);
     if (ret != 0)
     {
-        ERROR_PRINT("get_data_byurl() failed: %d", ret);
+        LOG_E("get_data_byurl() failed: %d", ret);
         return -2;
     }
-    // INFO_PRINT("weather_json: %s", weather_json); // 打印获取到的json数据
+    // LOG_I("weather_json: %s", weather_json); // 打印获取到的json数据
     if (parse_7day_weather_json(weather_json, weather, weathersize) != 0) // 解析json数据
         return -3;
     return 0;
@@ -82,14 +86,14 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
 {
     if (json_string == NULL || weather == NULL || weathersize > WEATHER_DAY_MAX)
     {
-        ERROR_PRINT("Invalid argument: json_string is NULL or weather is NULL or weathersize too big");
+        LOG_E("Invalid argument: json_string is NULL or weather is NULL or weathersize too big");
         return -1;
     }
     // 解析 JSON 字符串
     cJSON *root = cJSON_Parse(json_string);
     if (root == NULL)
     {
-        ERROR_PRINT("JSON 解析失败\n");
+        LOG_E("JSON 解析失败\n");
         return -2;
     }
 
@@ -97,20 +101,20 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     cJSON *code = cJSON_GetObjectItemCaseSensitive(root, "code");
     if (code == NULL)
     {
-        ERROR_PRINT("code is NULL\n");
+        LOG_E("code is NULL\n");
         cJSON_Delete(root);
         return -2;
     }
     
     if (cJSON_IsString(code))
     {
-        // INFO_PRINT("code: %s\n", code->valuestring);
+        // LOG_I("code: %s\n", code->valuestring);
     }
 
     // code 不对说明获取失败
     if (strcmp(code->valuestring, "200") != 0)
     {
-        ERROR_PRINT("code is not 200: %s", code->valuestring);
+        LOG_E("code is not 200: %s", code->valuestring);
         cJSON_Delete(root);
         return -3;
     }
@@ -119,7 +123,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     cJSON *update_time = cJSON_GetObjectItemCaseSensitive(root, "updateTime");
     if (cJSON_IsString(update_time))
     {
-        // INFO_PRINT("updateTime: %s\n", update_time->valuestring);
+        // LOG_I("updateTime: %s\n", update_time->valuestring);
     }
 
     // 提取 daily 数组
@@ -134,7 +138,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             if (cJSON_IsString(fx_date))
             {
                 strcpy(weather->fxDate, fx_date->valuestring);
-                // INFO_PRINT("fxDate: %s\n", fx_date->valuestring);
+                // LOG_I("fxDate: %s\n", fx_date->valuestring);
             }
 
             // 提取 tempMax 和 tempMin 字段
@@ -144,7 +148,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             {
                 weather->tempMax = atoi(temp_max->valuestring);
                 weather->tempMin = atoi(temp_min->valuestring);
-                // INFO_PRINT("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
+                // LOG_I("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
             }
 
             // 提取 textDay 和 textNight 字段
@@ -154,7 +158,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             {
                 strcpy(weather->textDay, text_day->valuestring);
                 strcpy(weather->textNight, text_night->valuestring);
-                // INFO_PRINT("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
+                // LOG_I("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
             }
         }
     }

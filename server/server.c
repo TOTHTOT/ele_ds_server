@@ -7,11 +7,14 @@
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
 #include "server.h"
-#include "../log.h"
 #include "../client/client.h"
 #include "main.h"
 #include <cjson/cJSON.h>
 #include "common.h"
+
+#define LOG_TAG "server"
+#define LOG_LEVEL LOG_LVL_DEBUG
+#include "log.h"
 
 static int32_t server_show_cntclient(server_t *server);
 static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len);
@@ -88,7 +91,7 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
             strcpy(server->clients.username[i], ""); // 初始化用户名为空
         }
         server->clients.fds[i].events = POLLIN; // 设置监听POLLIN事件
-        // INFO_PRINT("clients.fds[%d].fd = %d\n", i, server->clients.fds[i].fd);
+        // LOG_I("clients.fds[%d].fd = %d\n", i, server->clients.fds[i].fd);
     }
     server->client_event_handler = cb; // 设置客户端事件回调函数
     server->client_count = 0; // 初始化客户端数量为0
@@ -108,7 +111,7 @@ static int32_t server_show_cntclient(server_t *server)
 {
     if (server == NULL)
     {
-        ERROR_PRINT("server is NULL\n");
+        LOG_E("server is NULL\n");
         return -1;
     }
     printf("Connected clients: %d\n", server->client_count);
@@ -162,7 +165,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     int32_t updatefile = open(path, O_RDONLY);
     if (updatefile == -1)
     {
-        ERROR_PRINT("open %s failed: %s\n", path, strerror(errno));
+        LOG_E("open %s failed: %s\n", path, strerror(errno));
         return -2;
     }
     uint32_t filesize = lseek(updatefile, 0, SEEK_END);
@@ -183,7 +186,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
         }
         else
         {
-            ERROR_PRINT("base64_encode failed\n");
+            LOG_E("base64_encode failed\n");
             close(updatefile);
         }
         memset(buf, 0, sizeof(buf)); // 清空buf
@@ -220,7 +223,7 @@ static int8_t server_events(server_t *server)
         }
         else
         {
-            ERROR_PRINT("fd = %d", server->server_sockfd);
+            LOG_E("fd = %d", server->server_sockfd);
             perror("accept failed");
             return -1;
         }
@@ -236,14 +239,14 @@ static int8_t server_events(server_t *server)
                 server->clients.fds[i].events = POLLIN;
                 set_nonblocking(client_sockfd);
                 server->client_count++;
-                INFO_PRINT("New client connected: %d\n", client_sockfd);
+                LOG_I("New client connected: %d\n", client_sockfd);
                 break;
             }
         }
     }
     else
     {
-        INFO_PRINT("Max client limit reached, rejecting connection\n");
+        LOG_I("Max client limit reached, rejecting connection\n");
         close(client_sockfd);
     }
     return 0;
@@ -267,10 +270,10 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
     switch (client_msg->type)
     {
     case ELE_CLIENTMSG_INFO:
-        INFO_PRINT("Received client info message\n");
+        LOG_I("Received client info message\n");
         if (client_show_info(&client_msg->msg.client_info) != 0) // 显示客户端信息
         {
-            ERROR_PRINT("client_show_info failed\n");
+            LOG_E("client_show_info failed\n");
             ret = -3;
             break;
         }
@@ -289,17 +292,17 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         else
         {
             ret = -3;
-            WARNING_PRINT("get_weather failed\n");
+            LOG_W("get_weather failed\n");
         }
         break;
     case ELE_CLIENTMSG_CHEAT:
-        INFO_PRINT("Received client cheat message\n");
+        LOG_I("Received client cheat message\n");
         /* 转发消息到对应客户端:
         1. 需要先检测对应客户端是否在线;
         2. 数据库内是否有这个用户; */
         break;
     default:
-        ERROR_PRINT("deserialize from json failed\n");
+        LOG_E("deserialize from json failed\n");
         ret = -2;
         break;
     }
@@ -325,7 +328,7 @@ static int8_t client_events(server_t *server, int32_t i)
     if (valread == 0)
     {
         // 客户端断开连接
-        INFO_PRINT("Client %d disconnected\n", server->clients.fds[i].fd);
+        LOG_I("Client %d disconnected\n", server->clients.fds[i].fd);
         close(server->clients.fds[i].fd);
         // 将该客户端从pollfd数组中移除, 并清空对应事件
         server->clients.fds[i].fd = -1;
@@ -339,7 +342,7 @@ static int8_t client_events(server_t *server, int32_t i)
         ele_client_msg_t client_msg = {0};
         // 处理接收到的消息
         buffer[valread] = '\0';
-        INFO_PRINT("i = %d, fd = %d, Received message: %s", i, server->clients.fds[i].fd, buffer);
+        LOG_I("i = %d, fd = %d, Received message: %s", i, server->clients.fds[i].fd, buffer);
         // 回复客户端
         char reply[MAX_MSGLEN] = {0};
         sprintf(reply, "Server received len: %ld", strlen(buffer));
@@ -348,15 +351,15 @@ static int8_t client_events(server_t *server, int32_t i)
             int32_t ret = server->client_event_handler(server->clients.fds[i].fd, buffer, strlen(buffer), &client_msg);
             if (ret < 0) // 处理客户端事件
             {
-                WARNING_PRINT("client_event_handler failed, ret = %d\n", ret);
+                LOG_W("client_event_handler failed, ret = %d\n", ret);
             }
             if (handle_client_msg(server, i, &client_msg) != 0)
             {
-                WARNING_PRINT("handle_client_msg failed\n");
+                LOG_W("handle_client_msg failed\n");
             }
         }
         else
-            WARNING_PRINT("client_event_handler is NULL\n");
+            LOG_W("client_event_handler is NULL\n");
         send(server->clients.fds[i].fd, reply, strlen(reply), 0);
     }
     return 0;
@@ -391,7 +394,7 @@ void server_handle_clients(server_t *server)
         {
             if (server->clients.fds[i].revents != 0)
             {
-                WARNING_PRINT("pollfd[%d].revents = %#x, fd = %d, server fd = %d\n",
+                LOG_W("pollfd[%d].revents = %#x, fd = %d, server fd = %d\n",
                               i, server->clients.fds[i].revents, server->clients.fds[i].fd, server->server_sockfd);
             }
         }
@@ -436,13 +439,13 @@ int32_t server_close(server_t *server)
 #if 0
 void signal_handler(int sig)
 {
-    INFO_PRINT("Signal %d received, exiting...\n", sig);
+    LOG_I("Signal %d received, exiting...\n", sig);
     exit(0);
 }
 // 服务器运行主函数
 void server_run(server_t *server)
 {
-    INFO_PRINT("Server running\n");
+    LOG_I("Server running\n");
     while (1)
     {
         server_handle_clients(server);
@@ -457,7 +460,7 @@ int main()
         fprintf(stderr, "Server initialization failed\n");
         return -1;
     }
-    INFO_PRINT("Server initialized\n");
+    LOG_I("Server initialized\n");
     server_run(&server);
     return 0;
 }

@@ -51,7 +51,7 @@ int32_t get_data_byurl(char *url,
 {
     if (url == NULL || urlsize == 0 || data == NULL || datasize == 0)
     {
-        ERROR_PRINT("Invalid argument: url is NULL or urlsize is 0 or data is NULL or datasize is 0");
+        LOG_E("Invalid argument: url is NULL or urlsize is 0 or data is NULL or datasize is 0");
         return -EINVAL;
     }
 
@@ -75,7 +75,7 @@ int32_t get_data_byurl(char *url,
         res = curl_easy_perform(curl);
         if (res != CURLE_OK)
         {
-            ERROR_PRINT("curl_easy_perform() failed: %s", curl_easy_strerror(res));
+            LOG_E("curl_easy_perform() failed: %s", curl_easy_strerror(res));
             return -EIO;
         }
         // 清理 libcurl
@@ -83,7 +83,7 @@ int32_t get_data_byurl(char *url,
     }
     else
     {
-        ERROR_PRINT("curl_easy_init() failed");
+        LOG_E("curl_easy_init() failed");
         return -EIO;
     }
     return 0;

@@ -7,11 +7,13 @@
  * @Description: 用于处理终端发上来的消息
  */
 #include "client.h"
-#include "../log.h"
 #include <cjson/cJSON.h>
 #include <time.h>
 #include "../weather/weather.h"
 
+#define LOG_TAG "client"
+#define LOG_LEVEL LOG_LVL_DEBUG
+#include "log.h"
 // 生成 JSON
 /**
  * @description: 将结构体数据序列化为 JSON 字符串, 一般客户端使用这个函数
@@ -69,7 +71,7 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
     }
     else
     {
-        ERROR_PRINT("Failed to parse sensor data\n");
+        LOG_E("Failed to parse sensor data\n");
         return -1; // 解析失败
     }
 
@@ -86,7 +88,7 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
     }
     else
     {
-        ERROR_PRINT("Failed to parse config data\n");
+        LOG_E("Failed to parse config data\n");
         return -2; // 解析失败
     }
     
@@ -111,7 +113,7 @@ static int32_t client_analysis_cheatmsg(cJSON *root, ele_client_cheat_t *client_
     }
     else
     {
-        ERROR_PRINT("Failed to parse cheat data\n");
+        LOG_E("Failed to parse cheat data\n");
         return -1; // 解析失败
     }
 
@@ -127,7 +129,7 @@ int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *cli
 {
     if (json_str == NULL || client_msg == NULL)
     {
-        ERROR_PRINT("Invalid argument: json_str or client_msg is NULL\n");
+        LOG_E("Invalid argument: json_str or client_msg is NULL\n");
         return -1; // 参数无效
     }
     int32_t ret = 0;
@@ -144,7 +146,7 @@ int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *cli
     else
     {
         cJSON_Delete(root);
-        ERROR_PRINT("Failed to parse type\n");
+        LOG_E("Failed to parse type\n");
         return -3; // 缺少或无效的类型字段
     }
 
@@ -156,19 +158,19 @@ int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *cli
     case ELE_CLIENTMSG_INFO:
         if (client_analysis_infomsg(root, &client_msg->msg.client_info) != 0)
         {
-            ERROR_PRINT("Failed to parse client info\n");
+            LOG_E("Failed to parse client info\n");
             ret = -4; // 解析失败
         }
         break;
     case ELE_CLIENTMSG_CHEAT:
         if (client_analysis_cheatmsg(root, &client_msg->msg.cheat) != 0)
         {
-            ERROR_PRINT("Failed to parse client cheat\n");
+            LOG_E("Failed to parse client cheat\n");
             ret = -5; // 解析失败
         }
         break;
     default:
-        ERROR_PRINT("Invalid type: %d\n", client_msg->type);
+        LOG_E("Invalid type: %d\n", client_msg->type);
         ret = -6; // 无效的类型
         break;
     }
@@ -213,7 +215,7 @@ int8_t client_show_info(const ele_client_info_t *client_info)
     }
     else
     {
-        ERROR_PRINT("Failed to parse JSON\n");
+        LOG_E("Failed to parse JSON\n");
         return -1; // 解析失败
     }
     return 0;
@@ -285,7 +287,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
         cJSON_AddStringToObject(root, "message", msg->data.client_update); // 升级包数据
         break;
     default:
-        WARNING_PRINT("Unknown message type: %d\n", msg->msgtype);
+        LOG_W("Unknown message type: %d\n", msg->msgtype);
         return -1; // 未知消息类型, 处理失败
     }
     char *json_str = cJSON_PrintUnformatted(root);
@@ -293,7 +295,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
     ret = write(fd, json_str, strlen(json_str)); // 发送给客户端
     if (ret < 0)
     {
-        ERROR_PRINT("send failed: %d\n", ret);
+        LOG_E("send failed: %d\n", ret);
         cJSON_Delete(root);
         return -2;
     }
@@ -311,7 +313,7 @@ int32_t client_event_handler(int32_t fd, char *buf, uint32_t len, ele_client_msg
 {
     if (buf == NULL || len == 0 || client_msg == NULL)
     {
-        ERROR_PRINT("buf is NULL or len is %d\n", len);
+        LOG_E("buf is NULL or len is %d\n", len);
         return -1; // 无效参数
     }
 
@@ -322,7 +324,7 @@ int32_t client_event_handler(int32_t fd, char *buf, uint32_t len, ele_client_msg
     ret = client_deserialize_from_json(buf, client_msg);
     if (ret < 0)
     {
-        ERROR_PRINT("deserialize from json failed\n");
+        LOG_E("deserialize from json failed\n");
         return -2;
     }
 
