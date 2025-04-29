@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:19:11
+ * @LastEditTime: 2025-04-29 17:28:44
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -19,6 +19,7 @@
 static int32_t server_show_cntclient(server_t *server);
 static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len);
 static int32_t server_send_update_pack(struct server *server, int32_t fd, char *path);
+static void close_client_connection(server_t *server, int index);
 
 void set_nonblocking(int fd)
 {
@@ -343,13 +344,7 @@ static int8_t client_events(server_t *server, int32_t i)
     {
         // 客户端断开连接
         LOG_I("Client %d disconnected\n", server->clients.fds[i].fd);
-        close(server->clients.fds[i].fd);
-        // 将该客户端从pollfd数组中移除, 并清空对应事件
-        server->clients.fds[i].fd = -1;
-        strcpy(server->clients.username[i], "");
-        server->clients.fds[i].events = 0;
-        server->clients.fds[i].revents = 0;
-        server->client_count--;
+        close_client_connection(server, i); // 关闭客户端连接
     }
     else
     {
@@ -415,6 +410,22 @@ void server_handle_clients(server_t *server)
     }
 }
 
+static void close_client_connection(server_t *server, int index)
+{
+    int fd = server->clients.fds[index].fd;
+    server->client_count--;
+    if (fd != -1)
+    {
+        shutdown(fd, SHUT_RDWR);
+        close(fd);
+
+        server->clients.fds[index].fd = -1;
+        server->clients.fds[index].events = 0;
+        server->clients.fds[index].revents = 0;
+        server->clients.username[index][0] = '\0';
+    }
+}
+
 /**
  * @description: 关闭服务器, 将所有fds都清空
  * @param {server_t} *server 服务器
@@ -422,30 +433,31 @@ void server_handle_clients(server_t *server)
  */
 int32_t server_close(server_t *server)
 {
-    // 关闭所有客户端连接
+    if (!server)
+        return -1;
+
+    // 关闭所有客户端连接（从1开始，0是服务器监听socket）
     for (int i = 1; i <= MAX_CLIENTNUM; i++)
     {
-        if (server->clients.fds[i].fd != -1)
-        {
-            // printf("Shutting down client %d\n", server->clients.fds[i].fd);
-            send(server->clients.fds[i].fd, "SERVER_SHUTDOWN", strlen("SERVER_SHUTDOWN"), 0);
-            shutdown(server->clients.fds[i].fd, SHUT_RDWR); // 关闭读写
-            close(server->clients.fds[i].fd);
-            server->clients.fds[i].fd = -1;
-            strcpy(server->clients.username[i], "");
-            server->clients.fds[i].events = 0;
-            server->clients.fds[i].revents = 0;
-        }
+        send(server->clients.fds[i].fd, SERVER_SHUTDOWN_MSG, sizeof(SERVER_SHUTDOWN_MSG) - 1, 0);
+        close_client_connection(server, i);
     }
+
     server->client_count = 0;
+
     // 关闭监听 socket
-    close(server->server_sockfd);
-    // usleep(1000*1000);
-    server->server_sockfd = -1; // 关闭后置-1
+    if (server->server_sockfd != -1)
+    {
+        close(server->server_sockfd);
+        server->server_sockfd = -1;
+    }
+
+    // 清理服务端 socket 在 fds[0] 的记录
     server->clients.fds[0].fd = -1;
-    strcpy(server->clients.username[0], "");
     server->clients.fds[0].events = 0;
     server->clients.fds[0].revents = 0;
+    server->clients.username[0][0] = '\0';
+
     printf("Server stopped.\n");
     return 0;
 }
