@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:53
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-28 17:25:03
+ * @LastEditTime: 2025-04-29 17:44:42
  * @FilePath: \ele_ds_server\client\client.h
  * @Description: 用于处理终端发上来的消息
  */
@@ -83,9 +83,10 @@ typedef struct
     {
         char *memo;                   // 备忘录消息
         struct weather_info *weather; // 天气消息, 7天天气
-        char *client_update;       // 客户端升级消息, 升级包数据
+        char *client_update;          // 客户端升级消息, 升级包数据
     } data;
     uint32_t len;           // 消息长度
+    uint32_t packcnt;       // 消息包序号
     ele_msg_type_t msgtype; // 消息类型
 } ele_msg_t;                // 消息结构体
 

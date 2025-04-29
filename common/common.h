@@ -26,5 +26,5 @@ extern int32_t get_data_byurl(char *url,
 extern int32_t base64_encode(const unsigned char *input, size_t length, char *output, size_t output_size);
 extern int32_t base64_decode(const char *input, size_t length, unsigned char *output, size_t *output_length);
 extern void hex_to_bytes(const char *hex, unsigned char *bytes, size_t *length);
-
+extern uint32_t crc32(const char *data, size_t len);
 #endif /* __COMMON_H__ */

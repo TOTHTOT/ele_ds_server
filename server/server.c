@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:28:44
+ * @LastEditTime: 2025-04-29 17:46:15
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -174,6 +174,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
 
     uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
     int32_t ret = 0;
+    uint32_t packcnt = 0; // 包序号
     while ((ret = read(updatefile, buf, sizeof(buf))) > 0)
     {
         char base64_buf[CLIENT_SOFTUPDATE_PACK_SIZE * 2] = {0};
@@ -181,6 +182,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
         {
             ele_msg_t msg = {0};
             msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE; // 客户端升级消息类型
+            msg.packcnt = ++packcnt;               // 包序号, 服务器发送的包序号
             msg.len = filesize;                       // 升级包长度, 客户端根据这个长度来判断是否接收完毕
             msg.data.client_update = base64_buf;      // 升级包数据
             msg_send(fd, &msg);                       // 发送数据

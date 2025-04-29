@@ -235,3 +235,26 @@ int32_t base64_decode(const char *input, size_t length, unsigned char *output, s
     *output_length = j;
     return 0;
 }
+
+/**
+ * @description: CRC32校验
+ * @param {char} *data 数据
+ * @param {size_t} len 数据长度
+ * @return {uint32_t} CRC32校验值
+ */
+uint32_t crc32(const char *data, size_t len)
+{
+    uint32_t crc = 0xFFFFFFFF;
+    for (size_t i = 0; i < len; ++i)
+    {
+        crc ^= (uint8_t)data[i];
+        for (int j = 0; j < 8; ++j)
+        {
+            if (crc & 1)
+                crc = (crc >> 1) ^ 0xEDB88320;
+            else
+                crc = crc >> 1;
+        }
+    }
+    return ~crc;
+}

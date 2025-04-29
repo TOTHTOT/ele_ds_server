@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-28 17:41:50
+ * @LastEditTime: 2025-04-29 17:45:27
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -10,6 +10,7 @@
 #include <cjson/cJSON.h>
 #include <time.h>
 #include "../weather/weather.h"
+#include "../common/common.h"
 
 #define LOG_TAG "client"
 #define LOG_LEVEL LOG_LVL_DEBUG
@@ -237,6 +238,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
 
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "msgtype", msg->msgtype);
+    cJSON_AddNumberToObject(root, "packcnt", msg->packcnt);
     switch (msg->msgtype)
     {
     case ELE_SERVERMSG_MEMO:
@@ -283,12 +285,13 @@ int32_t msg_send(int fd, ele_msg_t *msg)
             cJSON_AddItemToArray(data_array, item);
         }
         cJSON_AddNumberToObject(root, "len", data_len);
-        cJSON_AddItemToObject(root, "data", data_array);
+        cJSON_AddItemToObject(root, "message", data_array);
     }
     break;
     case ELE_SERVERMSG_CLIENTUPDATE:
         cJSON_AddNumberToObject(root, "len", msg->len);
-        cJSON_AddStringToObject(root, "message", msg->data.client_update); // 升级包数据
+        cJSON_AddNumberToObject(root, "crc", crc32(msg->data.client_update, strlen(msg->data.client_update))); // CRC32校验和
+        cJSON_AddStringToObject(root, "message", msg->data.client_update);                                     // 升级包数据
         break;
     default:
         LOG_W("Unknown message type: %d\n", msg->msgtype);
