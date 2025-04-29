@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:46:15
+ * @LastEditTime: 2025-04-29 17:59:03
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -256,6 +256,28 @@ static int8_t server_events(server_t *server)
 }
 
 /**
+ * @description: 通过用户名查找对应的终端fd
+ * @param {server_t} *server 服务器
+ * @param {char} *username 用户名
+ * @return {int32_t} -1 参数错误; -2 未找到对应的fd; >= 0 成功
+ */
+static int32_t find_fd_by_username(server_t *server, const char *username)
+{
+    if (server == NULL || username == NULL)
+    {
+        return -1; // 参数错误
+    }
+    for (int i = 1; i <= MAX_CLIENTNUM; i++)
+    {
+        if (strcmp(server->clients.username[i], username) == 0)
+        {
+            return server->clients.fds[i].fd;
+        }
+    }
+    return -2; // 未找到对应的fd
+}
+
+/**
  * @description: 处理客户端消息
  * @param {server_t} *server 服务器
  * @param {uint32_t} index 客户端索引 
@@ -317,6 +339,15 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         /* 转发消息到对应客户端:
         1. 需要先检测对应客户端是否在线;
         2. 数据库内是否有这个用户; */
+        // 改用户没注册
+        if (users_name_exist(server->users_db, client_msg->msg.cheat.target_username) == false)
+        {
+            LOG_I("cannot find username %s in users table", client_msg->msg.cheat.target_username);
+        }
+        else
+        {
+            
+        }
         break;
     default:
         LOG_E("deserialize from json failed\n");
