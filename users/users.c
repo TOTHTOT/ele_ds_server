@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-04-28 15:02:36
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:14:30
+ * @LastEditTime: 2025-04-29 17:19:55
  * @FilePath: \ele_ds_server\users\users.c
  * @Description: 用户管理模块, 处理用户本地数据
  */
@@ -88,7 +88,7 @@ int32_t users_add(sqlite3 *db, const char *username, const char *password)
     // 检查用户名是否已存在
     if (users_name_exist(db, username))
     {
-        LOG_E("Username already exists: %s\n", username);
+        LOG_W("Username already exists: %s\n", username);
         return 1; // 用户名已存在
     }
 

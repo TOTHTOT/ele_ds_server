@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:03:26
+ * @LastEditTime: 2025-04-29 17:19:11
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -287,6 +287,9 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
             ret = -3;
             break;
         }
+
+        // 设置fd对应的用户名
+        strcpy(server->clients.username[index], client_msg->msg.client_info.cfg.username);
 
         struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
         memset(weather, 0, sizeof(weather));          // 初始化结构体
