@@ -2,6 +2,7 @@
 #include "../main.h"
 #include "../server/server.h"
 #include "../common/common.h"
+#include "../users/users.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,6 +151,13 @@ void handle_csupdate(int argc, char *args[])
     ele_ds_server.server.ops.update_pack_send(&ele_ds_server.server, fd, path);
 }
 
+void handle_users(int argc, char *args[])
+{
+    (void)argc; // 忽略参数数量
+    (void)args; // 忽略参数列表
+    users_list(ele_ds_server.server.users_db); // 列出所有用户
+}
+
 // 创建命令表
 command_t commands[] = {
     {"help", handle_help, "Show available commands"},
@@ -157,7 +165,7 @@ command_t commands[] = {
     {"status", handle_status, "Show server status"},
     {"memo", handle_memo, "Handle memo actions"},
     {"csupdate", handle_csupdate, "Handle client soft update"},
-    {"users", NULL, "Show connected users"},
+    {"users", handle_users, "Show users info"},
 };
 #define CMD_COUNT (sizeof(commands) / sizeof(commands[0]))
 // 处理 help 命令

@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-04-28 15:02:36
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:02:26
+ * @LastEditTime: 2025-04-29 17:14:30
  * @FilePath: \ele_ds_server\users\users.c
  * @Description: 用户管理模块, 处理用户本地数据
  */
@@ -107,16 +107,48 @@ int32_t users_add(sqlite3 *db, const char *username, const char *password)
     return 0; // 成功
 }
 
-static int users_check_callback(void *privatedata, int argc, char **argv, char **azColName)
+/**
+ * @description: 检查用户名和密码是否匹配的回调函数
+ * @param {void} *privatedata 回调函数传入的数据
+ * @param {int} argc 查询结果的列数
+ * @param {char} * argv[] 查询结果的列值
+ * @param {char} * azColName[] 查询结果的列名
+ * @return {int} 返回 0 表示成功
+ */
+static int users_list_callback(void *privatedata, int argc, char **argv, char **azColName)
 {
     (void)privatedata; // 避免未使用参数的警告
     for (int i = 0; i < argc; i++)
     {
-        LOG_I("%s = %s", azColName[i], argv[i] ? argv[i] : "NULL");
+        printf("%s = %s ", azColName[i], argv[i] ? argv[i] : "NULL");
     }
+    printf("\n");
     return 0;
 }
 
+/**
+ * @description: 列出所有用户
+ * @param {sqlite3} *db 数据库句柄
+ * @return {int32_t} 返回 0 表示成功，返回负数表示失败
+ */
+int32_t users_list(sqlite3 *db)
+{
+    if (db == NULL)
+    {
+        LOG_E("Invalid argument: db is NULL\n");
+        return -1;
+    }
+    // 查询测试
+    const char *sql_select = "SELECT * FROM users;";
+    int rc = sqlite3_exec(db, sql_select, users_list_callback, NULL, NULL);
+    if (rc != SQLITE_OK)
+    {
+        LOG_E("SQL error: %s", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return -2;
+    }
+    return 0;
+}
 /**
  * @description: 初始化用户数据库
  * @param {sqlite3} **db 数据库句柄
@@ -131,7 +163,6 @@ int32_t users_init(sqlite3 **db, const char *filepath)
         return -1;
     }
 
-    // 打开数据库（注意是 db 的地址）
     int rc = sqlite3_open(filepath, db);
     if (rc != SQLITE_OK)
     {
@@ -149,15 +180,6 @@ int32_t users_init(sqlite3 **db, const char *filepath)
         return -3;
     }
 
-    // 查询测试
-    const char *sql_select = "SELECT * FROM users;";
-    rc = sqlite3_exec(*db, sql_select, users_check_callback, NULL, NULL);
-    if (rc != SQLITE_OK)
-    {
-        LOG_E("SQL error: %s", sqlite3_errmsg(*db));
-        sqlite3_close(*db);
-        return -4;
-    }
     return 0;
 }
 

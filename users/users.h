@@ -23,5 +23,6 @@ typedef struct user_info
 extern int32_t users_init(sqlite3 **db, const char *filepath);
 extern bool users_name_exist(sqlite3 *db, const char *username);
 extern int32_t users_add(sqlite3 *db, const char *username, const char *password);
-
+extern int32_t users_list(sqlite3 *db);
+extern int32_t users_del(sqlite3 *db, const char *username, const char *password);
 #endif /* __USERS_H__ */
