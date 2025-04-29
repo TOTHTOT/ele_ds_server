@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:35:51
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-28 17:22:54
+ * @LastEditTime: 2025-04-29 17:01:39
  * @FilePath: \ele_ds_server\main.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -122,7 +122,7 @@ static int32_t ele_ds_server_init(ele_ds_server_t *device, uint16_t port)
         return -2;
     }
 
-    ret = users_init(device->server.users_db, "users.db");
+    ret = users_init(&device->server.users_db, "users.db");
     if (ret != 0)
     {
         LOG_E("users_init failed\n");

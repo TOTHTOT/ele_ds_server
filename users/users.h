@@ -20,7 +20,7 @@ typedef struct user_info
     char password[USER_PASSWD_SIZE]; // 密码
 } user_info_t;
 
-extern int32_t users_init(sqlite3 *db, const char *filepath);
+extern int32_t users_init(sqlite3 **db, const char *filepath);
 extern bool users_name_exist(sqlite3 *db, const char *username);
 extern int32_t users_add(sqlite3 *db, const char *username, const char *password);
 

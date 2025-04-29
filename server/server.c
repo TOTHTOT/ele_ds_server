@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-28 17:32:01
+ * @LastEditTime: 2025-04-29 17:03:26
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -281,7 +281,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         // 添加用户到数据如果不存在的话
         if (users_add(server->users_db, 
             client_msg->msg.client_info.cfg.username, 
-            client_msg->msg.client_info.cfg.passwd) != 0)
+            client_msg->msg.client_info.cfg.passwd) < 0)
         {
             LOG_E("client_add failed\n");
             ret = -3;

@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-04-28 15:02:36
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-28 17:14:06
+ * @LastEditTime: 2025-04-29 17:02:26
  * @FilePath: \ele_ds_server\users\users.c
  * @Description: 用户管理模块, 处理用户本地数据
  */
@@ -72,13 +72,16 @@ bool users_name_exist(sqlite3 *db, const char *username)
  * @param {sqlite3} *db 数据库句柄
  * @param {char} *username 用户名
  * @param {char} *password 密码
- * @return {*}
+ * @return {int32_t} 返回 0 表示成功，返回负数表示失败, 1 表示用户名已存在
  */
 int32_t users_add(sqlite3 *db, const char *username, const char *password)
 {
-    if (username == NULL || password == NULL || db == NULL)
+    if (username == NULL || password == NULL /* || db == NULL */)
     {
-        LOG_E("Invalid argument: username or password is NULL\n");
+        LOG_E("Invalid argument: %s%s%s is NULL\n",
+              username == NULL ? "username " : "",
+              password == NULL ? "password " : "",
+              db == NULL ? "db " : "");
         return -1;
     }
 
@@ -86,7 +89,7 @@ int32_t users_add(sqlite3 *db, const char *username, const char *password)
     if (users_name_exist(db, username))
     {
         LOG_E("Username already exists: %s\n", username);
-        return -2; // 用户名已存在
+        return 1; // 用户名已存在
     }
 
     // 创建插入 SQL
@@ -104,40 +107,60 @@ int32_t users_add(sqlite3 *db, const char *username, const char *password)
     return 0; // 成功
 }
 
+static int users_check_callback(void *privatedata, int argc, char **argv, char **azColName)
+{
+    (void)privatedata; // 避免未使用参数的警告
+    for (int i = 0; i < argc; i++)
+    {
+        LOG_I("%s = %s", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+    return 0;
+}
+
 /**
  * @description: 初始化用户数据库
- * @param {sqlite3} *db 数据库句柄
+ * @param {sqlite3} **db 数据库句柄
  * @param {char} *filepath 数据库文件路径
  * @return {int32_t} 返回 0 表示成功，返回负数表示失败
  */
-int32_t users_init(sqlite3 *db, const char *filepath)
+int32_t users_init(sqlite3 **db, const char *filepath)
 {
     if (filepath == NULL)
     {
-        LOG_E("Invalid argument: filepath is NULL\n");
+        LOG_E("Invalid argument: filepath is NULL");
         return -1;
     }
 
-    // 打开数据库，如果不存在则自动创建
-    int rc = sqlite3_open(filepath, &db);
+    // 打开数据库（注意是 db 的地址）
+    int rc = sqlite3_open(filepath, db);
     if (rc != SQLITE_OK)
     {
-        LOG_E("Cannot open database: %s\n", sqlite3_errmsg(db));
+        LOG_E("Cannot open database: %s", sqlite3_errmsg(*db));
         return -2;
     }
 
     // 创建表
-    const char *sql_create = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name TEXT, password INTEGER);";
-    rc = sqlite3_exec(db, sql_create, 0, 0, NULL);
+    const char *sql_create = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name TEXT, password TEXT);";
+    rc = sqlite3_exec(*db, sql_create, 0, 0, NULL);
     if (rc != SQLITE_OK)
     {
-        LOG_E("SQL error: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
+        LOG_E("SQL error: %s", sqlite3_errmsg(*db));
+        sqlite3_close(*db);
         return -3;
     }
 
+    // 查询测试
+    const char *sql_select = "SELECT * FROM users;";
+    rc = sqlite3_exec(*db, sql_select, users_check_callback, NULL, NULL);
+    if (rc != SQLITE_OK)
+    {
+        LOG_E("SQL error: %s", sqlite3_errmsg(*db));
+        sqlite3_close(*db);
+        return -4;
+    }
     return 0;
 }
+
 
 #else // 不把数据读到内存中, 每次使用都查表就好了
 struct 
