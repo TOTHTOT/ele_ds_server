@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:17
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-27 15:19:40
+ * @LastEditTime: 2025-04-30 16:03:24
  * @FilePath: \ele_ds_server\server\server.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -25,10 +25,11 @@
 #include "../users/users.h"
 
 /* 宏定义 */
-#define MAX_CLIENTNUM 30 // 最大客户端连接数
-#define MAX_MSGLEN 1024  // 最大消息长度
+#define MAX_CLIENTNUM 30  // 最大客户端连接数
+#define MAX_MSGLEN 1024   // 最大消息长度
 #define SERVER_PORT 24680 // 服务器端口
-#define CLIENT_SOFTUPDATE_PACK_SIZE 2048 // 客户端升级包大小
+// 客户端升级包每包数据大小, base64会导致升级包膨胀, 而tcp最大一包数据1500, 除去协议使用的数据保守起见暂定800字节
+#define CLIENT_SOFTUPDATE_PACK_SIZE 800
 #define SERVER_SHUTDOWN_MSG "SERVER_SHUTDOWN" // 服务器关闭消息
 
 /* 类型定义 */
