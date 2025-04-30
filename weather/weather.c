@@ -69,7 +69,7 @@ int32_t get_weather(struct weather_info *weather,
         LOG_E("get_data_byurl() failed: %d", ret);
         return -2;
     }
-    // LOG_I("weather_json: %s", weather_json); // 打印获取到的json数据
+    LOG_I("weather_json: %s", weather_json); // 打印获取到的json数据
     if (parse_7day_weather_json(weather_json, weather, weathersize) != 0) // 解析json数据
         return -3;
     return 0;
@@ -130,6 +130,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
     cJSON *daily = cJSON_GetObjectItemCaseSensitive(root, "daily");
     if (cJSON_IsArray(daily))
     {
+        uint32_t i = 0;
         cJSON *day;
         cJSON_ArrayForEach(day, daily)
         {
@@ -137,8 +138,8 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             cJSON *fx_date = cJSON_GetObjectItemCaseSensitive(day, "fxDate");
             if (cJSON_IsString(fx_date))
             {
-                strcpy(weather->fxDate, fx_date->valuestring);
-                // LOG_I("fxDate: %s\n", fx_date->valuestring);
+                strcpy(weather[i].fxDate, fx_date->valuestring);
+                LOG_W("fxDate: %s\n", fx_date->valuestring);
             }
 
             // 提取 tempMax 和 tempMin 字段
@@ -146,8 +147,8 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             cJSON *temp_min = cJSON_GetObjectItemCaseSensitive(day, "tempMin");
             if (cJSON_IsString(temp_max) && cJSON_IsString(temp_min))
             {
-                weather->tempMax = atoi(temp_max->valuestring);
-                weather->tempMin = atoi(temp_min->valuestring);
+                weather[i].tempMax = atoi(temp_max->valuestring);
+                weather[i].tempMin = atoi(temp_min->valuestring);
                 // LOG_I("tempMax: %s, tempMin: %s\n", temp_max->valuestring, temp_min->valuestring);
             }
 
@@ -156,10 +157,11 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
             cJSON *text_night = cJSON_GetObjectItemCaseSensitive(day, "textNight");
             if (cJSON_IsString(text_day) && cJSON_IsString(text_night))
             {
-                strcpy(weather->textDay, text_day->valuestring);
-                strcpy(weather->textNight, text_night->valuestring);
+                strcpy(weather[i].textDay, text_day->valuestring);
+                strcpy(weather[i].textNight, text_night->valuestring);
                 // LOG_I("textDay: %s, textNight: %s\n", text_day->valuestring, text_night->valuestring);
             }
+            i++;
         }
     }
 

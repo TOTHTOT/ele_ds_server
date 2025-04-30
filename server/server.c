@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:59:03
+ * @LastEditTime: 2025-04-30 16:49:15
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -320,13 +320,16 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         memset(weather, 0, sizeof(weather));          // 初始化结构体
         if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->msg.client_info.cfg.cityid) == 0)
         {
-            // 测试消息发送
-            ele_msg_t msg = {
-                .msgtype = ELE_SERVERMSG_WEATHER,
-                .len = 7,
-                .data.weather = weather,
-            };
-            msg_send(fd, &msg);
+            for (int32_t i = 0; i < WEATHER_DAY_MAX; i++)
+            {
+                ele_msg_t msg = {
+                    .msgtype = ELE_SERVERMSG_WEATHER,
+                    .len = 7,
+                    .packcnt = i + 1,
+                    .data.weather = &weather[i],
+                };
+                msg_send(fd, &msg);
+            }
         }
         else
         {
