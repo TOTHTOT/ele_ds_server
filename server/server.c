@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-30 16:49:15
+ * @LastEditTime: 2025-04-30 17:52:07
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -329,6 +329,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
                     .data.weather = &weather[i],
                 };
                 msg_send(fd, &msg);
+                usleep(100 * 1000); // 避免发太快粘包
             }
         }
         else
