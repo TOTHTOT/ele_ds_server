@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-30 16:55:54
+ * @LastEditTime: 2025-05-02 10:03:16
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -81,9 +81,13 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
     cJSON *config = cJSON_GetObjectItem(root, "cfg");
     if (config)
     {
-        strncpy(client_info->cfg.username, cJSON_GetObjectItem(config, "username")->valuestring, USER_NAME_SIZE);
-        strncpy(client_info->cfg.passwd, cJSON_GetObjectItem(config, "passwd")->valuestring, USER_PASSWD_SIZE);
-        strncpy(client_info->cfg.cityname, cJSON_GetObjectItem(config, "cityname")->valuestring, CITY_NAME_SIZE);
+        
+        strncpy(client_info->cfg.username, cJSON_GetObjectItem(config, "username")->valuestring, USER_NAME_SIZE - 1);
+        client_info->cfg.username[USER_NAME_SIZE - 1] = '\0';
+        strncpy(client_info->cfg.passwd, cJSON_GetObjectItem(config, "passwd")->valuestring, USER_PASSWD_SIZE - 1);
+        client_info->cfg.passwd[USER_PASSWD_SIZE - 1] = '\0';
+        strncpy(client_info->cfg.cityname, cJSON_GetObjectItem(config, "cityname")->valuestring, CITY_NAME_SIZE - 1);
+        client_info->cfg.cityname[CITY_NAME_SIZE - 1] = '\0';
         client_info->cfg.cityid = cJSON_GetObjectItem(config, "cityid")->valueint;
         client_info->cfg.cntserver_interval = cJSON_GetObjectItem(config, "cntserver_interval")->valueint;
         client_info->cfg.version = cJSON_GetObjectItem(config, "version")->valueint;
@@ -110,9 +114,12 @@ static int32_t client_analysis_cheatmsg(cJSON *root, ele_client_cheat_t *client_
     cJSON *cheat = cJSON_GetObjectItem(root, "cheat");
     if (cheat)
     {
-        strncpy(client_cheat->username, cJSON_GetObjectItem(cheat, "username")->valuestring, USER_NAME_SIZE);
-        strncpy(client_cheat->target_username, cJSON_GetObjectItem(cheat, "target_username")->valuestring, USER_NAME_SIZE);
-        strncpy(client_cheat->msg, cJSON_GetObjectItem(cheat, "msg")->valuestring, CLIENT_CHEAT_CONTENT_SIZE);
+        strncpy(client_cheat->username, cJSON_GetObjectItem(cheat, "username")->valuestring, USER_NAME_SIZE - 1);
+        client_cheat->username[USER_NAME_SIZE - 1] = '\0';
+        strncpy(client_cheat->target_username, cJSON_GetObjectItem(cheat, "target_username")->valuestring, USER_NAME_SIZE - 1);
+        client_cheat->target_username[USER_NAME_SIZE - 1] = '\0';
+        strncpy(client_cheat->msg, cJSON_GetObjectItem(cheat, "msg")->valuestring, CLIENT_CHEAT_CONTENT_SIZE - 1);
+        client_cheat->msg[CLIENT_CHEAT_CONTENT_SIZE - 1] = '\0';
     }
     else
     {

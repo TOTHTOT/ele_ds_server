@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:53
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-29 17:44:42
+ * @LastEditTime: 2025-05-02 09:58:06
  * @FilePath: \ele_ds_server\client\client.h
  * @Description: 用于处理终端发上来的消息
  */
@@ -16,9 +16,9 @@
 #include <string.h>
 
 /* 宏定义 */
-#define USER_NAME_SIZE 20 // 用户名最大长度
-#define USER_PASSWD_SIZE 20 // 密码最大长度
-#define CITY_NAME_SIZE 20 // 城市名字最大长度
+#define USER_NAME_SIZE 21 // 用户名最大长度, 实际20字节, 最后一个字节是\0
+#define USER_PASSWD_SIZE 21 // 密码最大长度
+#define CITY_NAME_SIZE 21 // 城市名字最大长度
 #define CLIENT_CHEAT_CONTENT_SIZE 256 // 备忘录消息最大长度
 
 /* 类型定义 */
