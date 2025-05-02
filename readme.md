@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-20 16:20:48
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-28 15:41:38
+ * @LastEditTime: 2025-05-02 16:14:41
  * @FilePath: \ele_ds_server\readme.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -18,6 +18,10 @@
    - 如果报错找不到`libconfig.h` 就咋`Makefile`添加 `-I/usr/lib/x86_64-linux-gnu/glib-2.0/include/`
  - readline `sudo apt-get install libreadline-dev`
  - sqlite3 `sudo apt install libsqlite3-dev sqlite3`
+
+## 待实现功能
+ 
+ [] 给离线设备发送消息, 要保存到数据库中, 然后设备上线时发送.
 
 ## 终端连接服务器说明
 
