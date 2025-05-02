@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 10:56:20
+ * @LastEditTime: 2025-05-02 11:16:42
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -269,7 +269,6 @@ int32_t msg_send(int fd, ele_msg_t *msg)
         return -1; // 未知消息类型, 处理失败
     }
     char *json_str = cJSON_PrintUnformatted(root);
-    LOG_I("Sending message to client: %s", json_str);
     LOG_I("Sending message to client: %s", json_str);
     ret = write(fd, json_str, strlen(json_str)); // 发送给客户端
     if (ret < 0)
