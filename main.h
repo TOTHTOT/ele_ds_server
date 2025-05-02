@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-03 09:37:31
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-01 10:40:06
+ * @LastEditTime: 2025-05-02 10:25:13
  * @FilePath: \ele_ds_server\main.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -22,6 +22,7 @@
 #include "server/server.h"
 
 /* 宏定义 */
+#define LAST_CLIENT_SOFTWARE_VERSION 0x00000001 // 客户端软件版本号, 4字节
 // #define OPENTEST
 
 /* 类型定义 */

@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:53
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 09:58:06
+ * @LastEditTime: 2025-05-02 10:42:11
  * @FilePath: \ele_ds_server\client\client.h
  * @Description: 用于处理终端发上来的消息
  */
@@ -24,12 +24,14 @@
 /* 类型定义 */
 typedef enum
 {
-    ELE_CLIENTMSG_NONE = -1,    // 客户端消息类型无效
-    ELE_CLIENTMSG_SUCCESS = 0,  // 客户端成功
-    ELE_CLIENTMSG_FAIL,         // 客户端失败
-    ELE_CLIENTMSG_INFO,         // 客户端信息
-    ELE_CLIENTMSG_CHEAT,        // 客户端发消息给某个客户端
-    ELE_SERVERMSG_MEMO,         // 服务器备忘录消息
+    ELE_CLIENTMSG_NONE = -1,   // 客户端消息类型无效
+    ELE_CLIENTMSG_SUCCESS = 0, // 客户端成功
+    ELE_CLIENTMSG_FAIL,        // 客户端失败
+    ELE_CLIENTMSG_INFO,        // 客户端信息
+    ELE_CLIENTMSG_CHEAT,       // 客户端发消息给某个客户端
+
+    // 消息类型区分服务器和客户端
+    ELE_SERVERMSG_MEMO = 0x80,  // 服务器备忘录消息
     ELE_SERVERMSG_WEATHER,      // 服务器天气消息
     ELE_SERVERMSG_CLIENTUPDATE, // 服务器客户端升级消息
     ELE_MSG_MAX,                // 最大消息类型
@@ -77,13 +79,23 @@ typedef struct ele_client_msg
     }msg;
 }ele_client_msg_t; // 客户端消息结构体
 
+#pragma pack(1)
+typedef struct client_software_updateinfo
+{
+    uint32_t crc;               // 升级包crc
+    uint32_t len;               // 升级包长度
+    uint32_t version;           // 升级包版本号
+    char buildinfo[32];     // 升级包编译信息, 可以不使用
+} client_software_updateinfo_t; // 客户端升级包结构体
+#pragma pack()
+
 typedef struct
 {
     union
     {
-        char *memo;                   // 备忘录消息
-        struct weather_info *weather; // 天气消息, 7天天气
-        char *client_update;          // 客户端升级消息, 升级包数据
+        char *memo;                           // 备忘录消息
+        int8_t weahterdays;                   // 天气消息, 天数
+        client_software_updateinfo_t cs_info; // 客户端升级包信息
     } data;
     uint32_t len;           // 消息长度
     uint32_t packcnt;       // 消息包序号
