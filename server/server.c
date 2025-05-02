@@ -413,7 +413,6 @@ static int8_t client_events(server_t *server, int32_t i)
         }
         else
             LOG_W("client_event_handler is NULL");
-            LOG_W("client_event_handler is NULL");
         send(server->clients.fds[i].fd, reply, strlen(reply), 0);
     }
     return 0;
