@@ -270,6 +270,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
     }
     char *json_str = cJSON_PrintUnformatted(root);
     LOG_I("Sending message to client: %s", json_str);
+    LOG_I("Sending message to client: %s", json_str);
     ret = write(fd, json_str, strlen(json_str)); // 发送给客户端
     if (ret < 0)
     {
