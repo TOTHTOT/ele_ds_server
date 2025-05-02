@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:53
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 10:42:11
+ * @LastEditTime: 2025-05-02 16:44:25
  * @FilePath: \ele_ds_server\client\client.h
  * @Description: 用于处理终端发上来的消息
  */
@@ -24,17 +24,17 @@
 /* 类型定义 */
 typedef enum
 {
-    ELE_CLIENTMSG_NONE = -1,   // 客户端消息类型无效
-    ELE_CLIENTMSG_SUCCESS = 0, // 客户端成功
-    ELE_CLIENTMSG_FAIL,        // 客户端失败
-    ELE_CLIENTMSG_INFO,        // 客户端信息
-    ELE_CLIENTMSG_CHEAT,       // 客户端发消息给某个客户端
+    EMT_CLIENTMSG_NONE = -1,   // 客户端消息类型无效
+    EMT_CLIENTMSG_SUCCESS = 0, // 客户端成功
+    EMT_CLIENTMSG_FAIL,        // 客户端失败
+    EMT_CLIENTMSG_INFO,        // 客户端信息
+    EMT_CLIENTMSG_CHEAT,       // 客户端发消息给某个客户端
 
     // 消息类型区分服务器和客户端
-    ELE_SERVERMSG_MEMO = 0x80,  // 服务器备忘录消息
-    ELE_SERVERMSG_WEATHER,      // 服务器天气消息
-    ELE_SERVERMSG_CLIENTUPDATE, // 服务器客户端升级消息
-    ELE_MSG_MAX,                // 最大消息类型
+    EMT_SERVERMSG_MEMO = 0x80,  // 服务器备忘录消息
+    EMT_SERVERMSG_WEATHER,      // 服务器天气消息
+    EMT_SERVERMSG_CLIENTUPDATE, // 服务器客户端升级消息
+    EMT_MSG_MAX,                // 最大消息类型
 } ele_msg_type_t;               // 消息类型
 typedef struct
 {

@@ -144,7 +144,7 @@ static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, ui
     ele_msg_t msg = {0};
     msg.len = len; // 备忘录数据长度
     msg.packcnt = 1;
-    msg.msgtype = ELE_SERVERMSG_MEMO; // 备忘录消息类型
+    msg.msgtype = EMT_SERVERMSG_MEMO; // 备忘录消息类型
     msg.data.memo = buf;              // 备忘录数据
     return msg_send(fd, &msg);        // 发送数据
 }
@@ -179,7 +179,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
 
     ret = read(updatefile, buf, sizeof(buf)); // 读取文件数据
     ele_msg_t msg = {0};
-    msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE;                // 客户端升级消息类型
+    msg.msgtype = EMT_SERVERMSG_CLIENTUPDATE;                // 客户端升级消息类型
     msg.packcnt = ++packcnt;                                 // 包序号, 服务器发送的包序号
     msg.len = filesize;                                      // 升级包长度, 客户端根据这个长度来判断是否接收完毕
     msg.data.cs_info.len = ret;                              // 升级包长度, 客户端根据这个长度来判断是否接收完毕, 两个有点重复了
@@ -292,7 +292,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
     
     switch (client_msg->type)
     {
-    case ELE_CLIENTMSG_INFO:
+    case EMT_CLIENTMSG_INFO:
         LOG_I("Received client info message\n");
         if (client_show_info(&client_msg->msg.client_info) != 0) // 显示客户端信息
         {
@@ -319,7 +319,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->msg.client_info.cfg.cityid) == 0)
         {
             ele_msg_t msg = {
-                .msgtype = ELE_SERVERMSG_WEATHER,
+                .msgtype = EMT_SERVERMSG_WEATHER,
                 .len = sizeof(weather),
                 .packcnt = 1,
                 .data.weahterdays = 7,
@@ -340,7 +340,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
             LOG_W("get_weather failed\n");
         }
         break;
-    case ELE_CLIENTMSG_CHEAT:
+    case EMT_CLIENTMSG_CHEAT:
         LOG_I("Received client cheat message\n");
         /* 转发消息到对应客户端:
         1. 需要先检测对应客户端是否在线;

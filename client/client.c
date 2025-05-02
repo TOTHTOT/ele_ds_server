@@ -166,14 +166,14 @@ int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *cli
     // 解析消息类型
     switch (client_msg->type)
     {
-    case ELE_CLIENTMSG_INFO:
+    case EMT_CLIENTMSG_INFO:
         if (client_analysis_infomsg(root, &client_msg->msg.client_info) != 0)
         {
             LOG_E("Failed to parse client info\n");
             ret = -4; // 解析失败
         }
         break;
-    case ELE_CLIENTMSG_CHEAT:
+    case EMT_CLIENTMSG_CHEAT:
         if (client_analysis_cheatmsg(root, &client_msg->msg.cheat) != 0)
         {
             LOG_E("Failed to parse client cheat\n");
@@ -253,13 +253,13 @@ int32_t msg_send(int fd, ele_msg_t *msg)
 
     switch (msg->msgtype)
     {
-    case ELE_SERVERMSG_MEMO:
+    case EMT_SERVERMSG_MEMO:
         cJSON_AddStringToObject(packinfo, "message", msg->data.memo);
         break;
-    case ELE_SERVERMSG_WEATHER:
+    case EMT_SERVERMSG_WEATHER:
         cJSON_AddNumberToObject(packinfo, "weahterdays", msg->data.weahterdays);
         break;
-    case ELE_SERVERMSG_CLIENTUPDATE:
+    case EMT_SERVERMSG_CLIENTUPDATE:
         cJSON_AddNumberToObject(packinfo, "cscrc", msg->data.cs_info.crc);
         cJSON_AddNumberToObject(packinfo, "version", msg->data.cs_info.version);
         cJSON_AddStringToObject(packinfo, "buildinfo", msg->data.cs_info.buildinfo);
