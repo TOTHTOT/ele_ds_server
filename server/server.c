@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-30 17:52:07
+ * @LastEditTime: 2025-05-02 10:58:01
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -142,10 +142,11 @@ static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, ui
         return -1;
     }
     ele_msg_t msg = {0};
-    msg.len = len;                    // 备忘录数据长度
+    msg.len = len; // 备忘录数据长度
+    msg.packcnt = 1;
     msg.msgtype = ELE_SERVERMSG_MEMO; // 备忘录消息类型
     msg.data.memo = buf;              // 备忘录数据
-    return msg_send(fd, &msg);    // 发送数据
+    return msg_send(fd, &msg);        // 发送数据
 }
 
 /**
@@ -175,27 +176,24 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
     int32_t ret = 0;
     uint32_t packcnt = 0; // 包序号
-    while ((ret = read(updatefile, buf, sizeof(buf))) > 0)
-    {
-        char base64_buf[CLIENT_SOFTUPDATE_PACK_SIZE * 2] = {0};
-        if (base64_encode(buf, ret, base64_buf, sizeof(base64_buf)) == 0) // 编码成base64格式
-        {
-            ele_msg_t msg = {0};
-            msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE; // 客户端升级消息类型
-            msg.packcnt = ++packcnt;               // 包序号, 服务器发送的包序号
-            msg.len = filesize;                       // 升级包长度, 客户端根据这个长度来判断是否接收完毕
-            msg.data.client_update = base64_buf;      // 升级包数据
-            msg_send(fd, &msg);                       // 发送数据
-        }
-        else
-        {
-            LOG_E("base64_encode failed\n");
-            close(updatefile);
-        }
-        memset(buf, 0, sizeof(buf)); // 清空buf
-        memset(base64_buf, 0, sizeof(base64_buf)); // 清空base64_buf
-    }
 
+    ret = read(updatefile, buf, sizeof(buf)); // 读取文件数据
+    ele_msg_t msg = {0};
+    msg.msgtype = ELE_SERVERMSG_CLIENTUPDATE;                // 客户端升级消息类型
+    msg.packcnt = ++packcnt;                                 // 包序号, 服务器发送的包序号
+    msg.len = filesize;                                      // 升级包长度, 客户端根据这个长度来判断是否接收完毕
+    msg.data.cs_info.len = ret;                              // 升级包长度, 客户端根据这个长度来判断是否接收完毕, 两个有点重复了
+    msg.data.cs_info.version = LAST_CLIENT_SOFTWARE_VERSION; // 升级包版本号
+    memcpy(msg.data.cs_info.buildinfo, "build from TOTHTOT", 19); // 测试数据
+    msg.data.cs_info.crc = crc32((char *)buf, ret); // 计算crc
+    msg_send(fd, &msg);                     // 发送升级包基本信息
+
+    ret = write(fd, buf, ret); // 发送升级包数据
+    if (ret < 0)
+    {
+        LOG_E("write failed: %s\n", strerror(errno));
+        return -3;
+    }
     return 0;
 }
 
@@ -320,17 +318,20 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         memset(weather, 0, sizeof(weather));          // 初始化结构体
         if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->msg.client_info.cfg.cityid) == 0)
         {
-            for (int32_t i = 0; i < WEATHER_DAY_MAX; i++)
+            ele_msg_t msg = {
+                .msgtype = ELE_SERVERMSG_WEATHER,
+                .len = sizeof(weather),
+                .packcnt = 1,
+                .data.weahterdays = 7,
+            };
+            msg_send(fd, &msg); // 发送天气数据包头
+            ret = write(fd, weather, sizeof(weather)); // 发送天气数据
+            if (ret < 0)
             {
-                ele_msg_t msg = {
-                    .msgtype = ELE_SERVERMSG_WEATHER,
-                    .len = 7,
-                    .packcnt = i + 1,
-                    .data.weather = &weather[i],
-                };
-                msg_send(fd, &msg);
-                usleep(100 * 1000); // 避免发太快粘包
+                LOG_E("write failed: %s\n", strerror(errno));
+                ret = -3;
             }
+            ret = 0; // 避免影响外部的ret返回
         }
         else
         {
@@ -397,15 +398,16 @@ static int8_t client_events(server_t *server, int32_t i)
             int32_t ret = server->client_event_handler(server->clients.fds[i].fd, buffer, strlen(buffer), &client_msg);
             if (ret < 0) // 处理客户端事件
             {
-                LOG_W("client_event_handler failed, ret = %d\n", ret);
+                LOG_W("client_event_handler failed, ret = %d", ret);
             }
-            if (handle_client_msg(server, i, &client_msg) != 0)
+            ret = handle_client_msg(server, i, &client_msg);
+            if (ret != 0)
             {
-                LOG_W("handle_client_msg failed\n");
+                LOG_W("handle_client_msg failed, ret = %d", ret);
             }
         }
         else
-            LOG_W("client_event_handler is NULL\n");
+            LOG_W("client_event_handler is NULL");
         send(server->clients.fds[i].fd, reply, strlen(reply), 0);
     }
     return 0;

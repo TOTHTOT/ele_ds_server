@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 10:03:16
+ * @LastEditTime: 2025-05-02 10:56:20
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -246,59 +246,30 @@ int32_t msg_send(int fd, ele_msg_t *msg)
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "msgtype", msg->msgtype);
     cJSON_AddNumberToObject(root, "packcnt", msg->packcnt);
+    // 添加packinfo, 包含实际消息内容, 下位机根据msgtype选择union内容解析
+    cJSON *packinfo = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "packinfo", packinfo); // 添加到根节点
+    cJSON_AddNumberToObject(packinfo, "len", msg->len);
+
     switch (msg->msgtype)
     {
     case ELE_SERVERMSG_MEMO:
-        cJSON_AddNumberToObject(root, "len", msg->len);
-        cJSON_AddStringToObject(root, "message", msg->data.memo);
+        cJSON_AddStringToObject(packinfo, "message", msg->data.memo);
         break;
     case ELE_SERVERMSG_WEATHER:
-    {
-        struct weather_info *data = msg->data.weather;
-
-        cJSON *item = cJSON_CreateObject();
-        cJSON_AddStringToObject(item, "fxDate", data->fxDate);
-        cJSON_AddStringToObject(item, "sunrise", data->sunrise);
-        cJSON_AddStringToObject(item, "sunset", data->sunset);
-        cJSON_AddStringToObject(item, "moonrise", data->moonrise);
-        cJSON_AddStringToObject(item, "moonset", data->moonset);
-        cJSON_AddStringToObject(item, "moonPhase", data->moonPhase);
-        cJSON_AddStringToObject(item, "moonPhaseIcon", data->moonPhaseIcon);
-        cJSON_AddNumberToObject(item, "tempMax", data->tempMax);
-        cJSON_AddNumberToObject(item, "tempMin", data->tempMin);
-        cJSON_AddStringToObject(item, "iconDay", data->iconDay);
-        cJSON_AddStringToObject(item, "textDay", data->textDay);
-        cJSON_AddStringToObject(item, "iconNight", data->iconNight);
-        cJSON_AddStringToObject(item, "textNight", data->textNight);
-        cJSON_AddNumberToObject(item, "wind360Day", data->wind360Day);
-        cJSON_AddStringToObject(item, "windDirDay", data->windDirDay);
-        cJSON_AddStringToObject(item, "windScaleDay", data->windScaleDay);
-        cJSON_AddNumberToObject(item, "windSpeedDay", data->windSpeedDay);
-        cJSON_AddNumberToObject(item, "wind360Night", data->wind360Night);
-        cJSON_AddStringToObject(item, "windDirNight", data->windDirNight);
-        cJSON_AddStringToObject(item, "windScaleNight", data->windScaleNight);
-        cJSON_AddNumberToObject(item, "windSpeedNight", data->windSpeedNight);
-        cJSON_AddNumberToObject(item, "humidity", data->humidity);
-        cJSON_AddNumberToObject(item, "precip", data->precip);
-        cJSON_AddNumberToObject(item, "pressure", data->pressure);
-        cJSON_AddNumberToObject(item, "vis", data->vis);
-        cJSON_AddNumberToObject(item, "cloud", data->cloud);
-        cJSON_AddNumberToObject(item, "uvIndex", data->uvIndex);
-        cJSON_AddNumberToObject(root, "len", msg->len);
-        cJSON_AddItemToObject(root, "message", item);
-    }
-    break;
+        cJSON_AddNumberToObject(packinfo, "weahterdays", msg->data.weahterdays);
+        break;
     case ELE_SERVERMSG_CLIENTUPDATE:
-        cJSON_AddNumberToObject(root, "len", msg->len);
-        cJSON_AddNumberToObject(root, "crc", crc32(msg->data.client_update, strlen(msg->data.client_update))); // CRC32校验和
-        cJSON_AddStringToObject(root, "message", msg->data.client_update);                                     // 升级包数据
+        cJSON_AddNumberToObject(packinfo, "cscrc", msg->data.cs_info.crc);
+        cJSON_AddNumberToObject(packinfo, "version", msg->data.cs_info.version);
+        cJSON_AddStringToObject(packinfo, "buildinfo", msg->data.cs_info.buildinfo);
         break;
     default:
         LOG_W("Unknown message type: %d\n", msg->msgtype);
         return -1; // 未知消息类型, 处理失败
     }
     char *json_str = cJSON_PrintUnformatted(root);
-    // printf("Sending message to client: %s\n", json_str);
+    LOG_I("Sending message to client: %s", json_str);
     ret = write(fd, json_str, strlen(json_str)); // 发送给客户端
     if (ret < 0)
     {

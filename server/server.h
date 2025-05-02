@@ -28,9 +28,8 @@
 #define MAX_CLIENTNUM 30  // 最大客户端连接数
 #define MAX_MSGLEN 1024   // 最大消息长度
 #define SERVER_PORT 24680 // 服务器端口
-// 客户端升级包每包数据大小, base64会导致升级包膨胀, 而tcp最大一包数据1500, 除去协议使用的数据保守起见暂定800字节
-#define CLIENT_SOFTUPDATE_PACK_SIZE 800
-#define SERVER_SHUTDOWN_MSG "SERVER_SHUTDOWN" // 服务器关闭消息
+#define CLIENT_SOFTUPDATE_PACK_SIZE (1024 * 1024) // 客户端升级包大小, 最大值 1M, 等于单片机flash大小
+#define SERVER_SHUTDOWN_MSG "SERVER_SHUTDOWN"     // 服务器关闭消息
 
 /* 类型定义 */
 typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len, ele_client_msg_t *client_msg); // 客户端事件回调函数类型
