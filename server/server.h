@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:17
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-04-30 16:03:24
+ * @LastEditTime: 2025-05-02 11:12:09
  * @FilePath: \ele_ds_server\server\server.h
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -30,7 +30,7 @@
 #define SERVER_PORT 24680 // 服务器端口
 #define CLIENT_SOFTUPDATE_PACK_SIZE (1024 * 1024) // 客户端升级包大小, 最大值 1M, 等于单片机flash大小
 #define SERVER_SHUTDOWN_MSG "SERVER_SHUTDOWN"     // 服务器关闭消息
-
+#define SERVER_SEND_DATA_INTERVAL (100 * 1000) // 服务器发送数据间隔, 单位秒
 /* 类型定义 */
 typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len, ele_client_msg_t *client_msg); // 客户端事件回调函数类型
 typedef struct server

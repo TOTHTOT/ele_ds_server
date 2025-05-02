@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 10:58:01
+ * @LastEditTime: 2025-05-02 11:12:50
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -187,7 +187,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     memcpy(msg.data.cs_info.buildinfo, "build from TOTHTOT", 19); // 测试数据
     msg.data.cs_info.crc = crc32((char *)buf, ret); // 计算crc
     msg_send(fd, &msg);                     // 发送升级包基本信息
-
+    usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
     ret = write(fd, buf, ret); // 发送升级包数据
     if (ret < 0)
     {
@@ -325,6 +325,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
                 .data.weahterdays = 7,
             };
             msg_send(fd, &msg); // 发送天气数据包头
+            usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
             ret = write(fd, weather, sizeof(weather)); // 发送天气数据
             if (ret < 0)
             {
