@@ -94,7 +94,7 @@ typedef struct
     union
     {
         char *memo;                           // 备忘录消息
-        int8_t weahterdays;                   // 天气消息, 天数
+        int8_t weatherdays;                   // 天气消息, 天数
         client_software_updateinfo_t cs_info; // 客户端升级包信息
     } data;
     uint32_t len;           // 消息长度
