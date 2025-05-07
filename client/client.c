@@ -260,7 +260,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
         cJSON_AddNumberToObject(packinfo, "weatherdays", msg->data.weatherdays);
         break;
     case EMT_SERVERMSG_CLIENTUPDATE:
-        cJSON_AddNumberToObject(packinfo, "cscrc", msg->data.cs_info.crc);
+        cJSON_AddNumberToObject(packinfo, "crc", msg->data.cs_info.crc);
         cJSON_AddNumberToObject(packinfo, "version", msg->data.cs_info.version);
         cJSON_AddStringToObject(packinfo, "buildinfo", msg->data.cs_info.buildinfo);
         break;
