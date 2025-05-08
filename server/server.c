@@ -400,14 +400,10 @@ static int8_t client_events(server_t *server, int32_t i)
             if (ret < 0) // 处理客户端事件
             {
                 LOG_W("client_event_handler failed, ret = %d", ret);
-                LOG_W("client_event_handler failed, ret = %d", ret);
             }
             ret = handle_client_msg(server, i, &client_msg);
             if (ret != 0)
-            ret = handle_client_msg(server, i, &client_msg);
-            if (ret != 0)
             {
-                LOG_W("handle_client_msg failed, ret = %d", ret);
                 LOG_W("handle_client_msg failed, ret = %d", ret);
             }
         }
