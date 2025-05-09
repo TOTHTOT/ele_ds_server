@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-09 11:29:22
+ * @LastEditTime: 2025-05-09 15:50:11
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -11,6 +11,7 @@
 #include "main.h"
 #include <cjson/cJSON.h>
 #include "common.h"
+#include <zlib.h>
 
 #define LOG_TAG "server"
 #define LOG_LEVEL LOG_LVL_DEBUG
@@ -185,7 +186,9 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     msg.data.cs_info.len = ret;                              // 升级包长度, 客户端根据这个长度来判断是否接收完毕, 两个有点重复了
     msg.data.cs_info.version = LAST_CLIENT_SOFTWARE_VERSION; // 升级包版本号
     memcpy(msg.data.cs_info.buildinfo, "build from TOTHTOT", 19); // 测试数据
-    msg.data.cs_info.crc = crc32((char *)buf, ret); // 计算crc
+    uint32_t crc = crc32(0L, Z_NULL, 0); // 初始化
+    msg.data.cs_info.crc = crc32(crc, (const Bytef *)buf, ret); // 计算crc
+    LOG_I("crc = %#x, len = %d, filesize = %d",  msg.data.cs_info.crc, ret, filesize);
     msg_send(fd, &msg);                     // 发送升级包基本信息
     usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
     ret = write(fd, buf, filesize); // 发送升级包数据, 异步发送, 会发的很快

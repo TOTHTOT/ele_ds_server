@@ -21,7 +21,7 @@ WEATHER_API_KEY = "e7d95a70480a4d6c9140378d9d100d42"
 CFLAGS = -Wall -Wextra -O2 -DWEATHER_API_KEY=\"$(WEATHER_API_KEY)\" -std=gnu99 -I/usr/include/glib-2.0 -I/usr/include/glib-2.0/glib -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/ -g -rdynamic
 
 # 链接选项
-LDFLAGS = -lcurl -lcjson -lpthread -lglib-2.0 -lreadline -lsqlite3 -g
+LDFLAGS = -lcurl -lcjson -lpthread -lglib-2.0 -lreadline -lsqlite3 -lz -g
 
 # 头文件目录
 INCLUDES = -I. -Icommon -Iweather
