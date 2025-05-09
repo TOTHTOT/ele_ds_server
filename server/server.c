@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 11:12:50
+ * @LastEditTime: 2025-05-09 11:29:22
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -177,7 +177,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     int32_t ret = 0;
     uint32_t packcnt = 0; // 包序号
 
-    ret = read(updatefile, buf, sizeof(buf)); // 读取文件数据
+    ret = read(updatefile, buf, filesize); // 读取文件数据
     ele_msg_t msg = {0};
     msg.msgtype = EMT_SERVERMSG_CLIENTUPDATE;                // 客户端升级消息类型
     msg.packcnt = ++packcnt;                                 // 包序号, 服务器发送的包序号
@@ -188,7 +188,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     msg.data.cs_info.crc = crc32((char *)buf, ret); // 计算crc
     msg_send(fd, &msg);                     // 发送升级包基本信息
     usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
-    ret = write(fd, buf, ret); // 发送升级包数据
+    ret = write(fd, buf, filesize); // 发送升级包数据, 异步发送, 会发的很快
     if (ret < 0)
     {
         LOG_E("write failed: %s\n", strerror(errno));
