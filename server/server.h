@@ -32,7 +32,7 @@
 #define SERVER_SHUTDOWN_MSG "SERVER_SHUTDOWN"     // 服务器关闭消息
 #define SERVER_SEND_DATA_INTERVAL (100 * 1000) // 服务器发送数据间隔, 单位秒
 /* 类型定义 */
-typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len, ele_client_msg_t *client_msg); // 客户端事件回调函数类型
+typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len, ele_msg_t *client_msg); // 客户端事件回调函数类型
 typedef struct server
 {
     int server_sockfd;                       // 服务器socket描述符

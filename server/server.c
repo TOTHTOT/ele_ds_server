@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-09 15:50:11
+ * @LastEditTime: 2025-05-28 16:14:47
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -282,10 +282,10 @@ static int32_t find_fd_by_username(server_t *server, const char *username)
  * @description: 处理客户端消息
  * @param {server_t} *server 服务器
  * @param {uint32_t} index 客户端索引 
- * @param {ele_client_msg_t} *client_msg 客户端消息
+ * @param {ele_msg_t} *client_msg 客户端消息
  * @return {int32_t} 0 成功; -1 参数错误; -2 解析失败; -3 处理失败
  */
-static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_client_msg_t *client_msg)
+static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_msg_t *client_msg)
 {
     if (!server || !client_msg)
         return -1;
@@ -293,11 +293,11 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
     int32_t ret = 0;
     int32_t fd = server->clients.fds[index].fd;
     
-    switch (client_msg->type)
+    switch (client_msg->msgtype)
     {
     case EMT_CLIENTMSG_INFO:
         LOG_I("Received client info message\n");
-        if (client_show_info(&client_msg->msg.client_info) != 0) // 显示客户端信息
+        if (client_show_info(&client_msg->data.client_info.client_info) != 0) // 显示客户端信息
         {
             LOG_E("client_show_info failed\n");
             ret = -3;
@@ -306,8 +306,8 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
 
         // 添加用户到数据如果不存在的话
         if (users_add(server->users_db, 
-            client_msg->msg.client_info.cfg.username, 
-            client_msg->msg.client_info.cfg.passwd) < 0)
+            client_msg->data.client_info.client_info.cfg.username, 
+            client_msg->data.client_info.client_info.cfg.passwd) < 0)
         {
             LOG_E("client_add failed\n");
             ret = -3;
@@ -315,11 +315,11 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         }
 
         // 设置fd对应的用户名
-        strcpy(server->clients.username[index], client_msg->msg.client_info.cfg.username);
+        strcpy(server->clients.username[index], client_msg->data.client_info.client_info.cfg.username);
 
         struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
         memset(weather, 0, sizeof(weather));          // 初始化结构体
-        if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->msg.client_info.cfg.cityid) == 0)
+        if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->data.client_info.client_info.cfg.cityid) == 0)
         {
             ele_msg_t msg = {
                 .msgtype = EMT_SERVERMSG_WEATHER,
@@ -349,9 +349,9 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_cli
         1. 需要先检测对应客户端是否在线;
         2. 数据库内是否有这个用户; */
         // 改用户没注册
-        if (users_name_exist(server->users_db, client_msg->msg.cheat.target_username) == false)
+        if (users_name_exist(server->users_db, client_msg->data.cheat.target_username) == false)
         {
-            LOG_I("cannot find username %s in users table", client_msg->msg.cheat.target_username);
+            LOG_I("cannot find username %s in users table", client_msg->data.cheat.target_username);
         }
         else
         {
@@ -390,13 +390,15 @@ static int8_t client_events(server_t *server, int32_t i)
     }
     else
     {
-        ele_client_msg_t client_msg = {0};
+        ele_msg_t client_msg = {0};
         // 处理接收到的消息
         buffer[valread] = '\0';
         LOG_I("i = %d, fd = %d, Received message: %s", i, server->clients.fds[i].fd, buffer);
+#if 0 // 不需要回复
         // 回复客户端
         char reply[MAX_MSGLEN] = {0};
         sprintf(reply, "Server received len: %ld", strlen(buffer));
+#endif
         if (server->client_event_handler != NULL)
         {
             int32_t ret = server->client_event_handler(server->clients.fds[i].fd, buffer, strlen(buffer), &client_msg);
@@ -412,7 +414,9 @@ static int8_t client_events(server_t *server, int32_t i)
         }
         else
             LOG_W("client_event_handler is NULL");
+#if 0 // 不需要回复
         send(server->clients.fds[i].fd, reply, strlen(reply), 0);
+#endif
     }
     return 0;
 }

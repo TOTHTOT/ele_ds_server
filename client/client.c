@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-02 11:16:42
+ * @LastEditTime: 2025-05-28 15:19:24
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -132,10 +132,10 @@ static int32_t client_analysis_cheatmsg(cJSON *root, ele_client_cheat_t *client_
 /**
  * @description: 将 JSON 字符串反序列化为结构体数据, 一般服务器使用这个函数
  * @param {char} *json_str JSON 字符串
- * @param {ele_client_msg_t} *client_msg 客户端信息结构体
+ * @param {ele_msg_t} *client_msg 客户端信息结构体
  * @return {int} >= 0 成功, 返回消息类型 -1:失败
  */
-int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *client_msg)
+int32_t client_deserialize_from_json(const char *json_str, ele_msg_t *client_msg)
 {
     if (json_str == NULL || client_msg == NULL)
     {
@@ -148,40 +148,40 @@ int32_t client_deserialize_from_json(const char *json_str, ele_client_msg_t *cli
         return -2;
 
     // 解析消息类型
-    cJSON *type = cJSON_GetObjectItem(root, "type");
-    if (type && cJSON_IsNumber(type))
+    cJSON *msgtype = cJSON_GetObjectItem(root, "msgtype");
+    if (msgtype && cJSON_IsNumber(msgtype))
     {
-        client_msg->type = type->valueint;
-        LOG_D("Parsed type: %d\n", client_msg->type);
+        client_msg->msgtype = msgtype->valueint;
+        LOG_D("Parsed msgtype: %d\n", client_msg->msgtype);
     }
     else
     {
         cJSON_Delete(root);
-        LOG_E("Failed to parse type\n");
+        LOG_E("Failed to parse msgtype\n");
         return -3; // 缺少或无效的类型字段
     }
 
     // 默认返回消息类型, 出错的话返回负数
-    ret = client_msg->type;
+    ret = client_msg->msgtype;
     // 解析消息类型
-    switch (client_msg->type)
+    switch (client_msg->msgtype)
     {
     case EMT_CLIENTMSG_INFO:
-        if (client_analysis_infomsg(root, &client_msg->msg.client_info) != 0)
+        if (client_analysis_infomsg(root, &client_msg->data.client_info.client_info) != 0)
         {
             LOG_E("Failed to parse client info\n");
             ret = -4; // 解析失败
         }
         break;
     case EMT_CLIENTMSG_CHEAT:
-        if (client_analysis_cheatmsg(root, &client_msg->msg.cheat) != 0)
+        if (client_analysis_cheatmsg(root, &client_msg->data.cheat) != 0)
         {
             LOG_E("Failed to parse client cheat\n");
             ret = -5; // 解析失败
         }
         break;
     default:
-        LOG_E("Invalid type: %d\n", client_msg->type);
+        LOG_E("Invalid type: %d\n", client_msg->msgtype);
         ret = -6; // 无效的类型
         break;
     }
@@ -287,7 +287,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
  * @param {uint32_t} len 接收数据长度
  * @return {*}
  */
-int32_t client_event_handler(int32_t fd, char *buf, uint32_t len, ele_client_msg_t *client_msg)
+int32_t client_event_handler(int32_t fd, char *buf, uint32_t len, ele_msg_t *client_msg)
 {
     if (buf == NULL || len == 0 || client_msg == NULL)
     {
