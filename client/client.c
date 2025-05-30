@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:45
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-28 15:19:24
+ * @LastEditTime: 2025-05-30 14:19:52
  * @FilePath: \ele_ds_server\client\client.c
  * @Description: 用于处理终端发上来的消息
  */
@@ -264,21 +264,27 @@ int32_t msg_send(int fd, ele_msg_t *msg)
         cJSON_AddNumberToObject(packinfo, "version", msg->data.cs_info.version);
         cJSON_AddStringToObject(packinfo, "buildinfo", msg->data.cs_info.buildinfo);
         break;
+    case EMT_SERVERMSG_BACKGROUND_IMG:
+        cJSON_AddNumberToObject(packinfo, "cb_crc", msg->data.client_bgimage_crc);
+        break;
     default:
         LOG_W("Unknown message type: %d\n", msg->msgtype);
         return -1; // 未知消息类型, 处理失败
     }
     char *json_str = cJSON_PrintUnformatted(root);
     LOG_I("Sending message to client: %s", json_str);
-    ret = write(fd, json_str, strlen(json_str)); // 发送给客户端
+    /* 发送给客户端, 包含结束符'\0', 解决json命令和数据分不开问题, 
+    比如发送了文本文件到终端, 再发json, 这样json会和文本文件粘连在一起(环形缓冲区无法区分字符串隔断), 
+    终端无法正确解析json数据, 解析的数据会包含文本内容 */
+    ret = write(fd, json_str, strlen(json_str) + 1); 
     if (ret < 0)
     {
         LOG_E("send failed: %d\n", ret);
-        cJSON_Delete(root);
-        return -2;
+        ret = -2;
     }
+    free(json_str);
     cJSON_Delete(root);
-    return 0;
+    return ret;
 }
 
 /**

@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:44:07
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-28 16:14:47
+ * @LastEditTime: 2025-05-30 10:46:48
  * @FilePath: \ele_ds_server\server\server.c
  * @Description: 电子卓搭服务器相关代码, 处理客户端的tcp连接以及服务器创建
  */
@@ -21,6 +21,7 @@ static int32_t server_show_cntclient(server_t *server);
 static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len);
 static int32_t server_send_update_pack(struct server *server, int32_t fd, char *path);
 static void close_client_connection(server_t *server, int index);
+static int32_t server_send_bgimage_file(server_t *server, int32_t fd, char *path);
 
 void set_nonblocking(int fd)
 {
@@ -101,6 +102,7 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
     server->ops.connected_client = server_show_cntclient; // 设置操作函数
     server->ops.send_memo = server_send_memo; // 设置发送备忘录函数
     server->ops.update_pack_send = server_send_update_pack; // 设置发送升级包函数
+    server->ops.bgimage_send = server_send_bgimage_file; // 设置发送背景图片函数
     return 0;
 }
 
@@ -190,12 +192,63 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     msg.data.cs_info.crc = crc32(crc, (const Bytef *)buf, ret); // 计算crc
     LOG_I("crc = %#x, len = %d, filesize = %d",  msg.data.cs_info.crc, ret, filesize);
     msg_send(fd, &msg);                     // 发送升级包基本信息
+    close(updatefile);
     usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
     ret = write(fd, buf, filesize); // 发送升级包数据, 异步发送, 会发的很快
     if (ret < 0)
     {
         LOG_E("write failed: %s\n", strerror(errno));
         return -3;
+    }
+    return 0;
+}
+
+/**
+ * @description:  发送客户端屏幕背景图片文件
+ * @param {server_t} *server 服务器
+ * @param {int32_t} fd 客户端文件描述符
+ * @param {char} *path 背景图片路径
+ * @return {int32_t} 0 成功; -1 参数错误; -2 打开文件失败; -3 读取文件失败; -4 写入文件失败
+ */
+static int32_t server_send_bgimage_file(server_t *server, int32_t fd, char *path)
+{
+    if (server == NULL || path == NULL)
+    {
+        return -1;
+    }
+
+    // 发送客户端屏幕背景图片
+    int32_t bgimage_fd = open(path, O_RDONLY);
+    if (bgimage_fd == -1)
+    {
+        LOG_E("open %s failed: %s\n", path, strerror(errno));
+        return -2;
+    }
+    
+    uint8_t buf[CLIENT_SCREEN_SIZE] = {0};
+    int32_t ret = read(bgimage_fd, buf, sizeof(buf));
+    if (ret < 0)
+    {
+        LOG_E("read bg image failed: %s\n", strerror(errno));
+        close(bgimage_fd);
+        return -3;
+    }
+
+    ele_msg_t msg = {0};
+    msg.msgtype = EMT_SERVERMSG_BACKGROUND_IMG; // 客户端背景图片消息类型
+    msg.packcnt = 1; // 包序号
+    msg.len = ret; // 图片数据长度
+    msg.data.client_bgimage_crc = crc32(0L, Z_NULL, 0); // 初始化
+    msg.data.client_bgimage_crc = crc32(msg.data.client_bgimage_crc, (const Bytef *)buf, ret); // 计算crc
+    LOG_I("crc = %#x, len = %d",  msg.data.client_bgimage_crc, ret);
+    msg_send(fd, &msg);
+    close(bgimage_fd);
+    usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
+    ret = write(fd, buf, ret); // 发送图片数据, 异步发送, 会发的很快
+    if (ret < 0)
+    {
+        LOG_E("write failed: %s\n", strerror(errno));
+        return -4;
     }
     return 0;
 }

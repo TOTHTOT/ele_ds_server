@@ -2,7 +2,7 @@
  * @Author: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
  * @Date: 2025-03-25 14:34:53
  * @LastEditors: TOTHTOT 37585883+TOTHTOT@users.noreply.github.com
- * @LastEditTime: 2025-05-28 14:48:43
+ * @LastEditTime: 2025-05-30 10:24:07
  * @FilePath: \ele_ds_server\client\client.h
  * @Description: 用于处理终端发上来的消息
  */
@@ -34,6 +34,7 @@ typedef enum
     EMT_SERVERMSG_MEMO = 0x80,  // 服务器备忘录消息
     EMT_SERVERMSG_WEATHER,      // 服务器天气消息
     EMT_SERVERMSG_CLIENTUPDATE, // 服务器客户端升级消息
+    EMT_SERVERMSG_BACKGROUND_IMG, // 服务器客户端屏幕背景图片
     EMT_MSG_MAX,                // 最大消息类型
 
 } ele_msg_type_t; // 消息类型, 和上位机同步
@@ -94,6 +95,7 @@ typedef struct
             ele_client_info_t client_info; // 客户端信息
             char *client_info_str;        // 客户端设备信息
         }client_info;
+        uint32_t client_bgimage_crc; // 客户端背景图片CRC
     } data;
     uint32_t len;           // 消息长度
     uint32_t packcnt;       // 消息包序号

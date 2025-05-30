@@ -151,6 +151,19 @@ void handle_csupdate(int argc, char *args[])
     ele_ds_server.server.ops.update_pack_send(&ele_ds_server.server, fd, path);
 }
 
+void handle_bgimage(int argc, char *args[])
+{
+    if (argc < 3)
+    {
+        printf("Usage: bgimage <fd> <path>\n");
+        return;
+    }
+
+    int fd = atoi(args[1]);
+    char *path = args[2];
+    ele_ds_server.server.ops.bgimage_send(&ele_ds_server.server, fd, path);
+}
+
 void handle_users(int argc, char *args[])
 {
     (void)argc; // 忽略参数数量
@@ -165,6 +178,7 @@ command_t commands[] = {
     {"status", handle_status, "Show server status"},
     {"memo", handle_memo, "Handle memo actions"},
     {"csupdate", handle_csupdate, "Handle client soft update"},
+    {"bgimage", handle_bgimage, "Send background image to client"},
     {"users", handle_users, "Show users info"},
 };
 #define CMD_COUNT (sizeof(commands) / sizeof(commands[0]))
