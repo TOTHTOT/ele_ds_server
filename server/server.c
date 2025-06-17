@@ -153,6 +153,24 @@ static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, ui
 }
 
 /**
+ * @brief 从文件路径中获取文件名
+ * @param path 文件路径
+ * @return != null 文件名
+ */
+static char *get_filename_from_path(const char *path)
+{
+    if (path == NULL)
+        return NULL;
+
+    const char *p = strrchr(path, '/');
+    if (p == NULL)
+    {
+        return (char *)path;
+    }
+    return (char *)(p + 1);
+}
+
+/**
  * @description: 发送升级包到客户端
  * @param {server} *server 服务器
  * @param {int32_t} fd 客户端文件描述符
@@ -179,6 +197,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
     int32_t ret = 0;
     uint32_t packcnt = 0; // 包序号
+    char *filename = get_filename_from_path(path);
 
     ret = read(updatefile, buf, filesize); // 读取文件数据
     ele_msg_t msg = {0};
@@ -187,7 +206,7 @@ static int32_t server_send_update_pack(struct server *server, int32_t fd, char *
     msg.len = filesize;                                      // 升级包长度, 客户端根据这个长度来判断是否接收完毕
     msg.data.cs_info.len = ret;                              // 升级包长度, 客户端根据这个长度来判断是否接收完毕, 两个有点重复了
     msg.data.cs_info.version = LAST_CLIENT_SOFTWARE_VERSION; // 升级包版本号
-    memcpy(msg.data.cs_info.buildinfo, "build from TOTHTOT", 19); // 测试数据
+    memcpy(msg.data.cs_info.buildinfo, filename, strlen(filename)); // 测试数据
     uint32_t crc = crc32(0L, Z_NULL, 0); // 初始化
     msg.data.cs_info.crc = crc32(crc, (const Bytef *)buf, ret); // 计算crc
     LOG_I("crc = %#x, len = %d, filesize = %d",  msg.data.cs_info.crc, ret, filesize);
