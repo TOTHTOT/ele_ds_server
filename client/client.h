@@ -79,11 +79,11 @@ typedef struct
 #pragma pack(1)
 typedef struct client_software_updateinfo
 {
-    uint32_t crc;               // 升级包crc
-    uint32_t len;               // 升级包长度
-    uint32_t version;           // 升级包版本号
-    char buildinfo[32];     // 升级包编译信息, 可以不使用
-} client_software_updateinfo_t; // 客户端升级包结构体
+    uint32_t crc; // 发送的文件 crc
+    uint32_t len; // 文件长度
+    uint32_t version; // 文件版本号, 升级包用的
+    char info[32]; // 文件信息, 包含文件名称
+} send_file_info_t; // 客户端升级包结构体
 #pragma pack()
 
 typedef struct
@@ -92,7 +92,7 @@ typedef struct
     {
         char *memo;                           // 备忘录消息
         int8_t weatherdays;                   // 天气消息, 天数
-        client_software_updateinfo_t cs_info; // 客户端升级包信息
+        send_file_info_t file_info; // 客户端升级包信息
         ele_client_cheat_t cheat;             // 客户端间聊天信息
         union
         {

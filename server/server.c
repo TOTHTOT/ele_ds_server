@@ -104,25 +104,22 @@ static int32_t server_send_file(ele_ds_server_send_file_type_t filetype, struct 
     msg.msgtype = judged_msgtype_by_filetype(filetype);
     switch (filetype)
     {
-        case ELE_DS_SFT_BGIMAGE:
-        {
-            char *filename = get_filename_from_path(path);
-            msg.data.cs_info.len = ret;
-            msg.data.cs_info.version = LAST_CLIENT_SOFTWARE_VERSION;
-            memcpy(msg.data.cs_info.buildinfo, filename, strlen(filename));
-            msg.data.cs_info.crc = crc32(0L, Z_NULL, 0);
-            msg.data.cs_info.crc = crc32(msg.data.cs_info.crc, (const Bytef *) buf, ret);
-            LOG_I("Update: crc = %#x, len = %d", msg.data.cs_info.crc, ret);
-        }
-        break;
         case ELE_DS_SFT_UPDATEFILE:
+        case ELE_DS_SFT_BGIMAGE:
         case ELE_DS_SFT_DEFAULT_SYSFILE:
         case ELE_DS_SFT_OTHER:
         default:
-            msg.data.crc = crc32(0L, Z_NULL, 0);
-            msg.data.crc = crc32(msg.data.crc, (const Bytef *) buf, ret);
+        {
+            char *filename = get_filename_from_path(path);
+            msg.data.file_info.len = ret;
+            if (filetype == ELE_DS_SFT_UPDATEFILE)
+                msg.data.file_info.version = LAST_CLIENT_SOFTWARE_VERSION;
+            memcpy(msg.data.file_info.info, filename, strlen(filename));
+            msg.data.file_info.crc = crc32(0L, Z_NULL, 0);
+            msg.data.file_info.crc = crc32(msg.data.file_info.crc, (const Bytef *) buf, ret);
             LOG_I("file type[%d]: crc = %#x, len = %d", filetype, msg.data.crc, ret);
-            break;
+        }
+        break;
     }
 
     msg_send(fd, &msg);
