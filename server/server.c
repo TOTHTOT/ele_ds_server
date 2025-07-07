@@ -112,8 +112,7 @@ static int32_t server_send_file(ele_ds_server_send_file_type_t filetype, struct 
         {
             char *filename = get_filename_from_path(path);
             msg.data.file_info.len = ret;
-            if (filetype == ELE_DS_SFT_UPDATEFILE)
-                msg.data.file_info.version = LAST_CLIENT_SOFTWARE_VERSION;
+            msg.data.file_info.version = LAST_CLIENT_SOFTWARE_VERSION;
             memcpy(msg.data.file_info.info, filename, strlen(filename));
             msg.data.file_info.crc = crc32(0L, Z_NULL, 0);
             msg.data.file_info.crc = crc32(msg.data.file_info.crc, (const Bytef *) buf, ret);
