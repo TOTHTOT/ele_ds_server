@@ -36,6 +36,14 @@
 #define CLIENT_SCREEN_SIZE (CLIENT_SCREEN_WIDTH * CLIENT_SCREEN_HEIGHT / 8) // 客户端屏幕大小, 单位字节, 墨水屏 实际使用要/8
 
 /* 类型定义 */
+typedef enum
+{
+    ELE_DS_SFT_UPDATEFILE, // 发送升级文件
+    ELE_DS_SFT_BGIMAGE, // 背景图片
+    ELE_DS_SFT_DEFAULT_SYSFILE, // 默认的系统基础文件包, 可能会很大
+    ELE_DS_SFT_OTHER, // 其他文件, 终端收到后放到 download 文件夹内
+} ele_ds_server_send_file_type_t; // 服务器发送的文件
+
 typedef int32_t (*client_event_cb)(int32_t fd, char *buf, uint32_t len, ele_msg_t *client_msg); // 客户端事件回调函数类型
 typedef struct server
 {
@@ -56,8 +64,7 @@ typedef struct server
     {
         int32_t (*connected_client)(struct server *server);
         int32_t (*send_memo)(struct server *server, int32_t fd, char *buf, uint32_t len);
-        int32_t (*update_pack_send)(struct server *server, int32_t fd, char *path);
-        int32_t (*bgimage_send)(struct server *server, int32_t fd, char *path);
+        int32_t (*send_file)(ele_ds_server_send_file_type_t filetype, struct server *server, int32_t fd, char *path);
     }ops;
     
     sqlite3 *users_db; // 用户数据库句柄

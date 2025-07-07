@@ -148,7 +148,33 @@ void handle_csupdate(int argc, char *args[])
 
     int fd = atoi(args[1]);
     char *path = args[2];
-    ele_ds_server.server.ops.update_pack_send(&ele_ds_server.server, fd, path);
+    ele_ds_server.server.ops.send_file(ELE_DS_SFT_UPDATEFILE, &ele_ds_server.server, fd, path);
+}
+
+void handle_sendfile(int argc, char *args[])
+{
+    if (argc < 3)
+    {
+        printf("Usage: csupdate <fd> <path>\n");
+        return;
+    }
+
+    int fd = atoi(args[1]);
+    char *path = args[2];
+    ele_ds_server.server.ops.send_file(ELE_DS_SFT_OTHER, &ele_ds_server.server, fd, path);
+}
+
+void handle_def_sysfile(int argc, char *args[])
+{
+    if (argc < 3)
+    {
+        printf("Usage: csupdate <fd> <path>\n");
+        return;
+    }
+
+    int fd = atoi(args[1]);
+    char *path = args[2];
+    ele_ds_server.server.ops.send_file(ELE_DS_SFT_DEFAULT_SYSFILE, &ele_ds_server.server, fd, path);
 }
 
 void handle_bgimage(int argc, char *args[])
@@ -161,7 +187,7 @@ void handle_bgimage(int argc, char *args[])
 
     int fd = atoi(args[1]);
     char *path = args[2];
-    ele_ds_server.server.ops.bgimage_send(&ele_ds_server.server, fd, path);
+    ele_ds_server.server.ops.send_file(ELE_DS_SFT_BGIMAGE, &ele_ds_server.server, fd, path);
 }
 
 void handle_users(int argc, char *args[])
@@ -178,6 +204,8 @@ command_t commands[] = {
     {"status", handle_status, "Show server status"},
     {"memo", handle_memo, "Handle memo actions"},
     {"csupdate", handle_csupdate, "Handle client soft update"},
+    {"defsysfile", handle_def_sysfile, "Send default system file to client"},
+    {"sendfile", handle_sendfile, "Send a file to client"},
     {"bgimage", handle_bgimage, "Send background image to client"},
     {"users", handle_users, "Show users info"},
 };

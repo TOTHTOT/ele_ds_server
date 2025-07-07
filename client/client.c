@@ -265,7 +265,9 @@ int32_t msg_send(int fd, ele_msg_t *msg)
         cJSON_AddStringToObject(packinfo, "buildinfo", msg->data.cs_info.buildinfo);
         break;
     case EMT_SERVERMSG_BACKGROUND_IMG:
-        cJSON_AddNumberToObject(packinfo, "cb_crc", msg->data.client_bgimage_crc);
+    case EMT_SERVERMSG_DEFAULT_SYSFILE:
+    case EMT_SERVERMSG_OTHER_FILE:
+        cJSON_AddNumberToObject(packinfo, "crc", msg->data.crc);
         break;
     default:
         LOG_W("Unknown message type: %d\n", msg->msgtype);

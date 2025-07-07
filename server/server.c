@@ -19,9 +19,8 @@
 
 static int32_t server_show_cntclient(server_t *server);
 static int32_t server_send_memo(struct server *server, int32_t fd, char *buf, uint32_t len);
-static int32_t server_send_update_pack(struct server *server, int32_t fd, char *path);
 static void close_client_connection(server_t *server, int index);
-static int32_t server_send_bgimage_file(server_t *server, int32_t fd, char *path);
+static char *get_filename_from_path(const char *path);
 
 void set_nonblocking(int fd)
 {
@@ -35,6 +34,114 @@ void set_nonblocking(int fd)
     {
         perror("fcntl F_SETFL O_NONBLOCK failed");
     }
+}
+
+/**
+ * @brief 根据文件类型判断当前消息的类型
+ * @param filetype 文件类型
+ * @return 返回对应msg类型
+ */
+static inline int32_t judged_msgtype_by_filetype(const ele_ds_server_send_file_type_t filetype)
+{
+    switch (filetype)
+    {
+        case ELE_DS_SFT_BGIMAGE:
+            return EMT_SERVERMSG_BACKGROUND_IMG;
+        case ELE_DS_SFT_UPDATEFILE:
+            return EMT_SERVERMSG_CLIENTUPDATE;
+        case ELE_DS_SFT_DEFAULT_SYSFILE:
+            return EMT_SERVERMSG_DEFAULT_SYSFILE;
+        default:
+            return EMT_SERVERMSG_OTHER_FILE;
+    }
+}
+
+/**
+ * @brief 发送一个文件到终端
+ * @param filetype 文件类型
+ * @param server 服务器指针
+ * @param fd 对应客户端的文件描述符
+ * @param path 要发送文件的路径
+ * @return 0: 成功, 其他失败
+ */
+static int32_t server_send_file(ele_ds_server_send_file_type_t filetype, struct server *server, int32_t fd, char *path)
+{
+    int32_t ret = 0;
+
+    if (server == NULL || path == NULL || fd < 0)
+    {
+        return -1;
+    }
+
+    int32_t filefd = open(path, O_RDONLY);
+    if (filefd == -1)
+    {
+        LOG_E("open %s failed: %s\n", path, strerror(errno));
+        return -2;
+    }
+
+    int32_t filesize = lseek(filefd, 0, SEEK_END);
+    uint8_t *buf = calloc(1, filesize);
+    if (buf == NULL)
+    {
+        LOG_E("malloc failed: %s\n", strerror(errno));
+        close(filefd);
+        return -1;
+    }
+    lseek(filefd, 0, SEEK_SET);
+    ret = read(filefd, buf, filesize);
+    if (ret < 0)
+    {
+        LOG_E("read failed: %s\n", strerror(errno));
+        close(filefd);
+        ret = -3;
+        goto _error;
+    }
+
+    ele_msg_t msg = {0};
+    msg.packcnt = 1;
+    msg.len = ret;
+    msg.msgtype = judged_msgtype_by_filetype(filetype);
+    switch (filetype)
+    {
+        case ELE_DS_SFT_BGIMAGE:
+        {
+            char *filename = get_filename_from_path(path);
+            msg.data.cs_info.len = ret;
+            msg.data.cs_info.version = LAST_CLIENT_SOFTWARE_VERSION;
+            memcpy(msg.data.cs_info.buildinfo, filename, strlen(filename));
+            msg.data.cs_info.crc = crc32(0L, Z_NULL, 0);
+            msg.data.cs_info.crc = crc32(msg.data.cs_info.crc, (const Bytef *) buf, ret);
+            LOG_I("Update: crc = %#x, len = %d", msg.data.cs_info.crc, ret);
+        }
+        break;
+        case ELE_DS_SFT_UPDATEFILE:
+        case ELE_DS_SFT_DEFAULT_SYSFILE:
+        case ELE_DS_SFT_OTHER:
+        default:
+            msg.data.crc = crc32(0L, Z_NULL, 0);
+            msg.data.crc = crc32(msg.data.crc, (const Bytef *) buf, ret);
+            LOG_I("file type[%d]: crc = %#x, len = %d", filetype, msg.data.crc, ret);
+            break;
+    }
+
+    msg_send(fd, &msg);
+    close(filefd);
+    usleep(SERVER_SEND_DATA_INTERVAL);
+
+    ret = write(fd, buf, ret);
+    if (ret < 0)
+    {
+        LOG_E("write failed: %s\n", strerror(errno));
+        ret = -4;
+        goto _error;
+    }
+
+    return 0;
+_error:
+    if (buf)
+        free(buf);
+    return ret;
 }
 
 /**
@@ -101,8 +208,7 @@ int32_t server_init(server_t *server, uint16_t port, client_event_cb cb)
     
     server->ops.connected_client = server_show_cntclient; // 设置操作函数
     server->ops.send_memo = server_send_memo; // 设置发送备忘录函数
-    server->ops.update_pack_send = server_send_update_pack; // 设置发送升级包函数
-    server->ops.bgimage_send = server_send_bgimage_file; // 设置发送背景图片函数
+    server->ops.send_file = server_send_file; // 设置发送背景图片函数
     return 0;
 }
 
@@ -168,108 +274,6 @@ static char *get_filename_from_path(const char *path)
         return (char *)path;
     }
     return (char *)(p + 1);
-}
-
-/**
- * @description: 发送升级包到客户端
- * @param {server} *server 服务器
- * @param {int32_t} fd 客户端文件描述符
- * @param {char} *path 升级包路径
- * @return {int32_t} 0 成功; -1 失败; -2 打开文件失败
- */
-static int32_t server_send_update_pack(struct server *server, int32_t fd, char *path)
-{
-    if (server == NULL || path == NULL)
-    {
-        return -1;
-    }
-
-    // 升级包通过json发送, 每次发送10k, 直到发送完毕
-    int32_t updatefile = open(path, O_RDONLY);
-    if (updatefile == -1)
-    {
-        LOG_E("open %s failed: %s\n", path, strerror(errno));
-        return -2;
-    }
-    uint32_t filesize = lseek(updatefile, 0, SEEK_END);
-    lseek(updatefile, 0, SEEK_SET);
-
-    uint8_t buf[CLIENT_SOFTUPDATE_PACK_SIZE] = {0};
-    int32_t ret = 0;
-    uint32_t packcnt = 0; // 包序号
-    char *filename = get_filename_from_path(path);
-
-    ret = read(updatefile, buf, filesize); // 读取文件数据
-    ele_msg_t msg = {0};
-    msg.msgtype = EMT_SERVERMSG_CLIENTUPDATE;                // 客户端升级消息类型
-    msg.packcnt = ++packcnt;                                 // 包序号, 服务器发送的包序号
-    msg.len = filesize;                                      // 升级包长度, 客户端根据这个长度来判断是否接收完毕
-    msg.data.cs_info.len = ret;                              // 升级包长度, 客户端根据这个长度来判断是否接收完毕, 两个有点重复了
-    msg.data.cs_info.version = LAST_CLIENT_SOFTWARE_VERSION; // 升级包版本号
-    memcpy(msg.data.cs_info.buildinfo, filename, strlen(filename)); // 测试数据
-    uint32_t crc = crc32(0L, Z_NULL, 0); // 初始化
-    msg.data.cs_info.crc = crc32(crc, (const Bytef *)buf, ret); // 计算crc
-    LOG_I("crc = %#x, len = %d, filesize = %d",  msg.data.cs_info.crc, ret, filesize);
-    msg_send(fd, &msg);                     // 发送升级包基本信息
-    close(updatefile);
-    usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
-    ret = write(fd, buf, filesize); // 发送升级包数据, 异步发送, 会发的很快
-    if (ret < 0)
-    {
-        LOG_E("write failed: %s\n", strerror(errno));
-        return -3;
-    }
-    return 0;
-}
-
-/**
- * @description:  发送客户端屏幕背景图片文件
- * @param {server_t} *server 服务器
- * @param {int32_t} fd 客户端文件描述符
- * @param {char} *path 背景图片路径
- * @return {int32_t} 0 成功; -1 参数错误; -2 打开文件失败; -3 读取文件失败; -4 写入文件失败
- */
-static int32_t server_send_bgimage_file(server_t *server, int32_t fd, char *path)
-{
-    if (server == NULL || path == NULL)
-    {
-        return -1;
-    }
-
-    // 发送客户端屏幕背景图片
-    int32_t bgimage_fd = open(path, O_RDONLY);
-    if (bgimage_fd == -1)
-    {
-        LOG_E("open %s failed: %s\n", path, strerror(errno));
-        return -2;
-    }
-    
-    uint8_t buf[CLIENT_SCREEN_SIZE] = {0};
-    int32_t ret = read(bgimage_fd, buf, sizeof(buf));
-    if (ret < 0)
-    {
-        LOG_E("read bg image failed: %s\n", strerror(errno));
-        close(bgimage_fd);
-        return -3;
-    }
-
-    ele_msg_t msg = {0};
-    msg.msgtype = EMT_SERVERMSG_BACKGROUND_IMG; // 客户端背景图片消息类型
-    msg.packcnt = 1; // 包序号
-    msg.len = ret; // 图片数据长度
-    msg.data.client_bgimage_crc = crc32(0L, Z_NULL, 0); // 初始化
-    msg.data.client_bgimage_crc = crc32(msg.data.client_bgimage_crc, (const Bytef *)buf, ret); // 计算crc
-    LOG_I("crc = %#x, len = %d",  msg.data.client_bgimage_crc, ret);
-    msg_send(fd, &msg);
-    close(bgimage_fd);
-    usleep(SERVER_SEND_DATA_INTERVAL); // 等待100ms, 避免头和数据粘连
-    ret = write(fd, buf, ret); // 发送图片数据, 异步发送, 会发的很快
-    if (ret < 0)
-    {
-        LOG_E("write failed: %s\n", strerror(errno));
-        return -4;
-    }
-    return 0;
 }
 
 /**
