@@ -308,7 +308,7 @@ int32_t msg_send(int fd, ele_msg_t *msg)
     case EMT_SERVERMSG_OTHER_FILE:
         cJSON_AddNumberToObject(packinfo, "crc", msg->data.file_info.crc);
         cJSON_AddNumberToObject(packinfo, "version", msg->data.file_info.version);
-        cJSON_AddStringToObject(packinfo, "buildinfo", msg->data.file_info.info);
+        cJSON_AddStringToObject(packinfo, "info", msg->data.file_info.info);
         break;
     default:
         LOG_W("Unknown message type: %d\n", msg->msgtype);

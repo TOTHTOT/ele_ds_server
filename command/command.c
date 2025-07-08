@@ -155,7 +155,7 @@ void handle_sendfile(int argc, char *args[])
 {
     if (argc < 3)
     {
-        printf("Usage: csupdate <fd> <path>\n");
+        printf("Usage: sendfile <fd> <path>\n");
         return;
     }
 
@@ -168,7 +168,7 @@ void handle_def_sysfile(int argc, char *args[])
 {
     if (argc < 3)
     {
-        printf("Usage: csupdate <fd> <path>\n");
+        printf("Usage: def_sysfile <fd> <path>\n");
         return;
     }
 
