@@ -65,11 +65,27 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
     cJSON *sensor = cJSON_GetObjectItem(root, "sensor_data");
     if (sensor)
     {
-        client_info->sensor_data.temperature = cJSON_GetObjectItem(sensor, "temperature")->valueint;
-        client_info->sensor_data.humidity = cJSON_GetObjectItem(sensor, "humidity")->valueint;
-        client_info->sensor_data.pressure = cJSON_GetObjectItem(sensor, "pressure")->valueint;
-        client_info->sensor_data.tvoc = cJSON_GetObjectItem(sensor, "tvoc")->valueint;
-        client_info->sensor_data.co2 = cJSON_GetObjectItem(sensor, "co2")->valueint;
+        cJSON *item = NULL;
+
+        item = cJSON_GetObjectItem(sensor, "temperature");
+        if (cJSON_IsNumber(item))
+            client_info->sensor_data.temperature = item->valueint;
+
+        item = cJSON_GetObjectItem(sensor, "humidity");
+        if (cJSON_IsNumber(item))
+            client_info->sensor_data.humidity = item->valueint;
+
+        item = cJSON_GetObjectItem(sensor, "pressure");
+        if (cJSON_IsNumber(item))
+            client_info->sensor_data.pressure = item->valueint;
+
+        item = cJSON_GetObjectItem(sensor, "tvoc");
+        if (cJSON_IsNumber(item))
+            client_info->sensor_data.tvoc = item->valueint;
+
+        item = cJSON_GetObjectItem(sensor, "co2");
+        if (cJSON_IsNumber(item))
+            client_info->sensor_data.co2 = item->valueint;
     }
     else
     {
@@ -81,17 +97,44 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
     cJSON *config = cJSON_GetObjectItem(root, "cfg");
     if (config)
     {
-        
-        strncpy(client_info->cfg.username, cJSON_GetObjectItem(config, "username")->valuestring, USER_NAME_SIZE - 1);
-        client_info->cfg.username[USER_NAME_SIZE - 1] = '\0';
-        strncpy(client_info->cfg.passwd, cJSON_GetObjectItem(config, "passwd")->valuestring, USER_PASSWD_SIZE - 1);
-        client_info->cfg.passwd[USER_PASSWD_SIZE - 1] = '\0';
-        strncpy(client_info->cfg.cityname, cJSON_GetObjectItem(config, "cityname")->valuestring, CITY_NAME_SIZE - 1);
-        client_info->cfg.cityname[CITY_NAME_SIZE - 1] = '\0';
-        client_info->cfg.cityid = cJSON_GetObjectItem(config, "cityid")->valueint;
-        client_info->cfg.cntserver_interval = cJSON_GetObjectItem(config, "cntserver_interval")->valueint;
-        client_info->cfg.version = cJSON_GetObjectItem(config, "version")->valueint;
-        client_info->cfg.battery = cJSON_GetObjectItem(config, "battery")->valueint;
+        cJSON *item = NULL;
+
+        item = cJSON_GetObjectItem(config, "username");
+        if (cJSON_IsString(item) && strlen(item->valuestring) > 0)
+        {
+            strncpy(client_info->cfg.username, item->valuestring, USER_NAME_SIZE - 1);
+            client_info->cfg.username[USER_NAME_SIZE - 1] = '\0';
+        }
+
+        item = cJSON_GetObjectItem(config, "passwd");
+        if (cJSON_IsString(item) && strlen(item->valuestring) > 0)
+        {
+            strncpy(client_info->cfg.passwd, item->valuestring, USER_PASSWD_SIZE - 1);
+            client_info->cfg.passwd[USER_PASSWD_SIZE - 1] = '\0';
+        }
+
+        item = cJSON_GetObjectItem(config, "cityname");
+        if (cJSON_IsString(item) && strlen(item->valuestring) > 0)
+        {
+            strncpy(client_info->cfg.cityname, item->valuestring, CITY_NAME_SIZE - 1);
+            client_info->cfg.cityname[CITY_NAME_SIZE - 1] = '\0';
+        }
+
+        item = cJSON_GetObjectItem(config, "cityid");
+        if (cJSON_IsNumber(item))
+            client_info->cfg.cityid = item->valueint;
+
+        item = cJSON_GetObjectItem(config, "cntserver_interval");
+        if (cJSON_IsNumber(item))
+            client_info->cfg.cntserver_interval = item->valueint;
+
+        item = cJSON_GetObjectItem(config, "version");
+        if (cJSON_IsNumber(item))
+            client_info->cfg.version = item->valueint;
+
+        item = cJSON_GetObjectItem(config, "battery");
+        if (cJSON_IsNumber(item))
+            client_info->cfg.battery = item->valueint;
     }
     else
     {
