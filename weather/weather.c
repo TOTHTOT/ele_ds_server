@@ -46,33 +46,47 @@ size_t get_weather_cb(void *ptr, size_t size, size_t nmemb, void *userdata)
  * @param {char} *city
  * @return {*}
  */
-int32_t get_weather(struct weather_info *weather,
-                    uint32_t weathersize,
-                    time_t start_time,
-                    uint32_t cityid)
+int32_t get_weather_ex(struct weather_info *weather,
+                      uint32_t weathersize,
+                      time_t start_time,
+                      const void *identifier,
+                      bool is_cityid)
 {
-    if (weather == NULL || weathersize > WEATHER_DAY_MAX || cityid == 0)
+    if (weather == NULL || weathersize > WEATHER_DAY_MAX ||
+        (is_cityid && *(uint32_t*)identifier == 0) ||
+        (!is_cityid && identifier == NULL))
     {
-        LOG_E("Invalid argument: weather is NULL or weathersize too big"); // 记录错误日志
+        LOG_E("Invalid argument: weather is NULL or weathersize too big or invalid identifier");
         return -1; // Invalid argument
     }
-    (void)start_time; // 防止编译器报错
-    int32_t ret = 0;
-    char day7_api[sizeof(WEATHER_API_7D_HTTP) + 10] = {0}; // uint32_t 最大值为10位数
-    sprintf(day7_api, "%s%d", WEATHER_API_7D_HTTP, cityid);
-    LOG_I("api: %s", day7_api); 
 
-    // 通过api获取原始json数据
-    char weather_json[4096] = {0};
+    (void)start_time; // Prevent compiler warning
+    int32_t ret = 0;
+    char *day7_api = calloc(1, sizeof(WEATHER_API_7D_HTTP) + strlen(identifier));
+
+    if (is_cityid) {
+        sprintf(day7_api, "%s%d", WEATHER_API_7D_HTTP, *(uint32_t*)identifier);
+    } else {
+        LOG_D("111111");
+        sprintf(day7_api, "%s%s", WEATHER_API_7D_HTTP, (char*)identifier);
+        LOG_D("111111");
+    }
+
+    LOG_I("api: %s", day7_api);
+
+    // Get raw json data via api
+    char weather_json[14096] = {0};
     ret = get_data_byurl(day7_api, sizeof(day7_api), weather_json, sizeof(weather_json), get_weather_cb);
-    if (ret != 0)
-    {
+    if (ret != 0) {
         LOG_E("get_data_byurl() failed: %d", ret);
         return -2;
     }
-    LOG_I("weather_json: %s", weather_json); // 打印获取到的json数据
-    if (parse_7day_weather_json(weather_json, weather, weathersize) != 0) // 解析json数据
+
+    LOG_I("weather_json: %s", weather_json); // Print received json data
+    if (parse_7day_weather_json(weather_json, weather, weathersize) != 0) {
         return -3;
+    }
+
     return 0;
 }
 
@@ -117,7 +131,7 @@ static int8_t parse_7day_weather_json(const char *json_string, struct weather_in
         return -2;
     }
 
-    uint32_t day_count = cJSON_GetArraySize(daily);
+    cJSON_GetArraySize(daily);
     uint32_t i = 0;
     cJSON *day_item;
 

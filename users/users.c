@@ -88,8 +88,8 @@ int32_t users_add(sqlite3 *db, const char *username, const char *password)
     // 检查用户名是否已存在
     if (users_name_exist(db, username))
     {
-        LOG_W("Username already exists: %s\n", username);
-        return 1; // 用户名已存在
+        LOG_W("Username already exists: %s\n", username == NULL ? "(null)" : username);
+        return -1; // 用户名已存在
     }
 
     // 创建插入 SQL

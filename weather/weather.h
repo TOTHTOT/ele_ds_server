@@ -14,12 +14,13 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <curl/curl.h>
+#include <stdbool.h>
 
 #define WEATHER_API_DEFAULT_CITYID "101010100" // 默认城市ID
 #ifndef WEATHER_API_KEY
 #error "Please define WEATHER_API_KEY"
 #endif
-#define WEATHER_API_7D_HTTP "https://devapi.qweather.com/v7/weather/7d?key=" WEATHER_API_KEY "&location="
+#define WEATHER_API_7D_HTTP "https://devapi.qweather.com/v7/weather/7d?key=" WEATHER_API_KEY "&lang=zh&location="
 
 enum weather_day_index
 {
@@ -78,9 +79,10 @@ struct weather_info
     uint8_t uvIndex;        // 紫外线指数 (如 "5")
 };
 
-extern int32_t get_weather(struct weather_info *weather,
-                           uint32_t weathersize,
-                           time_t start_time,
-                           uint32_t cityid);
+extern int32_t get_weather_ex(struct weather_info *weather,
+                      uint32_t weathersize,
+                      time_t start_time,
+                      const void *identifier,
+                      bool is_cityid);
 
 #endif /* __WEATHER_H__ */

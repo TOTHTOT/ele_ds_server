@@ -381,9 +381,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_msg
             client_msg->data.client_info.client_info.cfg.username, 
             client_msg->data.client_info.client_info.cfg.passwd) < 0)
         {
-            LOG_E("client_add failed\n");
-            ret = -3;
-            break;
+            LOG_W("client not need add\n");
         }
 
         // 设置fd对应的用户名
@@ -391,7 +389,7 @@ static int32_t handle_client_msg(server_t *server, uint32_t index, const ele_msg
 
         struct weather_info weather[WEATHER_DAY_MAX]; // 天气信息
         memset(weather, 0, sizeof(weather));          // 初始化结构体
-        if (get_weather(weather, WEATHER_DAY_MAX, time(NULL), client_msg->data.client_info.client_info.cfg.cityid) == 0)
+        if (get_weather_ex(weather, WEATHER_DAY_MAX, time(NULL), client_msg->data.client_info.client_info.cfg.location, false) == 0)
         {
             ele_msg_t msg = {
                 .msgtype = EMT_SERVERMSG_WEATHER,

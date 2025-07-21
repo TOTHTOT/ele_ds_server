@@ -40,7 +40,7 @@ char *client_serialize_to_json(const ele_client_info_t *client_info)
     cJSON_AddStringToObject(config, "username", client_info->cfg.username);
     cJSON_AddStringToObject(config, "passwd", client_info->cfg.passwd);
     cJSON_AddStringToObject(config, "cityname", client_info->cfg.cityname);
-    cJSON_AddNumberToObject(config, "cityid", client_info->cfg.cityid);
+    cJSON_AddStringToObject(config, "location", client_info->cfg.location);
     cJSON_AddNumberToObject(config, "cntserver_interval", client_info->cfg.cntserver_interval);
     cJSON_AddNumberToObject(config, "version", client_info->cfg.version);
     cJSON_AddNumberToObject(config, "battery", client_info->cfg.battery);
@@ -120,9 +120,12 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
             client_info->cfg.cityname[CITY_NAME_SIZE - 1] = '\0';
         }
 
-        item = cJSON_GetObjectItem(config, "cityid");
-        if (cJSON_IsNumber(item))
-            client_info->cfg.cityid = item->valueint;
+        item = cJSON_GetObjectItem(config, "location");
+        if (cJSON_IsString(item) && strlen(item->valuestring) > 0)
+        {
+            strncpy(client_info->cfg.location, item->valuestring, CITY_NAME_SIZE - 1);
+            client_info->cfg.location[CITY_NAME_SIZE - 1] = '\0';
+        }
 
         item = cJSON_GetObjectItem(config, "cntserver_interval");
         if (cJSON_IsNumber(item))
@@ -258,7 +261,7 @@ int8_t client_show_info(const ele_client_info_t *client_info)
         printf("Username: %s\n", client_info->cfg.username);
         printf("Password: %s\n", client_info->cfg.passwd);
         printf("City: %s\n", client_info->cfg.cityname);
-        printf("City ID: %u\n", client_info->cfg.cityid);
+        printf("Location ID: %s\n", client_info->cfg.location);
         printf("Interval: %u sec\n", client_info->cfg.cntserver_interval);
         printf("Version: %u\n", client_info->cfg.version);
         printf("Battery: %u%%\n", client_info->cfg.battery);
