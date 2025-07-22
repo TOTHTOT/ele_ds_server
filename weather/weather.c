@@ -77,6 +77,7 @@ int32_t get_weather_ex(struct weather_info *weather,
     // Get raw json data via api
     char weather_json[14096] = {0};
     ret = get_data_byurl(day7_api, sizeof(day7_api), weather_json, sizeof(weather_json), get_weather_cb);
+    free(day7_api);
     if (ret != 0) {
         LOG_E("get_data_byurl() failed: %d", ret);
         return -2;

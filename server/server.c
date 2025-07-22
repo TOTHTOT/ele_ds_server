@@ -126,6 +126,7 @@ static int32_t server_send_file(ele_ds_server_send_file_type_t filetype, struct 
     usleep(SERVER_SEND_DATA_INTERVAL);
 
     ret = write(fd, buf, ret);
+    free(buf);
     if (ret < 0)
     {
         LOG_E("write failed: %s\n", strerror(errno));
