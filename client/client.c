@@ -41,7 +41,6 @@ char *client_serialize_to_json(const ele_client_info_t *client_info)
     cJSON_AddStringToObject(config, "passwd", client_info->cfg.passwd);
     cJSON_AddStringToObject(config, "cityname", client_info->cfg.cityname);
     cJSON_AddStringToObject(config, "location", client_info->cfg.location);
-    cJSON_AddNumberToObject(config, "cntserver_interval", client_info->cfg.cntserver_interval);
     cJSON_AddNumberToObject(config, "version", client_info->cfg.version);
     cJSON_AddNumberToObject(config, "battery", client_info->cfg.battery);
     cJSON_AddItemToObject(root, "cfg", config);
@@ -126,10 +125,6 @@ static int32_t client_analysis_infomsg(cJSON *root, ele_client_info_t *client_in
             strncpy(client_info->cfg.location, item->valuestring, CITY_NAME_SIZE - 1);
             client_info->cfg.location[CITY_NAME_SIZE - 1] = '\0';
         }
-
-        item = cJSON_GetObjectItem(config, "cntserver_interval");
-        if (cJSON_IsNumber(item))
-            client_info->cfg.cntserver_interval = item->valueint;
 
         item = cJSON_GetObjectItem(config, "version");
         if (cJSON_IsNumber(item))
@@ -262,7 +257,6 @@ int8_t client_show_info(const ele_client_info_t *client_info)
         printf("Password: %s\n", client_info->cfg.passwd);
         printf("City: %s\n", client_info->cfg.cityname);
         printf("Location ID: %s\n", client_info->cfg.location);
-        printf("Interval: %u sec\n", client_info->cfg.cntserver_interval);
         printf("Version: %u\n", client_info->cfg.version);
         printf("Battery: %u%%\n", client_info->cfg.battery);
         printf("Temperature: %u°C\n", client_info->sensor_data.temperature);
@@ -386,7 +380,6 @@ int main()
         printf("Username: %s\n", new_client_info.cfg.username);
         printf("City: %s\n", new_client_info.cfg.cityname);
         printf("City ID: %u\n", new_client_info.cfg.cityid);
-        printf("Interval: %u sec\n", new_client_info.cfg.cntserver_interval);
         printf("Version: %u\n", new_client_info.cfg.version);
         printf("Battery: %u%%\n", new_client_info.cfg.battery);
         printf("Temperature: %u°C\n", new_client_info.sensor_data.temperature);
