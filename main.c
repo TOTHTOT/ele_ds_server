@@ -15,7 +15,9 @@
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
+#ifndef PLATFORM_IPQ50XX
 #include <execinfo.h>
+#endif
 
 #define LOG_TAG "main"
 #define LOG_LEVEL LOG_LVL_DEBUG
@@ -83,6 +85,7 @@ void signal_handler(int signo)
         break;
     case SIGSEGV:
     {
+#ifndef PLATFORM_IPQ50XX
         void *array[10];
         size_t size;
 
@@ -91,6 +94,7 @@ void signal_handler(int signo)
         backtrace_symbols_fd(array, size, STDERR_FILENO);
         ele_ds_server.exitflag = true;
         exit(1);
+#endif
         break;
     }
     default:

@@ -34,3 +34,29 @@
 ## 终端连接服务器说明
 
 - 服务器运行`frpc`后开启代理且关闭认证, 终端使用tcp连接服务器, 暂时使用`24680`端口.
+
+## 移植到ipq50xx上流程
+  - [下载sdk](https://archive.openwrt.org/releases/19.07.10/targets/ipq40xx/generic/openwrt-sdk-19.07.10-ipq40xx-generic_gcc-7.5.0_musl_eabi.Linux-x86_64.tar.xz)
+  - 修改`feeds.conf.default`内容为
+    ```shell
+    src-git base https://git.openwrt.org/openwrt/openwrt.git;openwrt-19.07
+    src-git packages https://github.com/openwrt/packages.git;openwrt-19.07
+    src-git luci https://github.com/openwrt/luci.git;openwrt-19.07
+    src-git routing https://git.openwrt.org/feed/routing.git;openwrt-19.07
+    src-git telephony https://git.openwrt.org/feed/telephony.git;openwrt-19.07
+    src-git freifunk https://github.com/freifunk/openwrt-packages.git
+    ```
+  - 更新并暗装
+    ```shell
+    ./scripts/feeds update -a
+    ./scripts/feeds install -a
+    
+    make package/mbedtls/compile V=s
+    make package/readline/compile V=s
+    make package/curl/compile V=s
+    make package/glib/compile V=s
+    # 如果curl有报错lmbed*库丢失可能需要在库内软连接以下库
+    ln -sf libmbedx509.so.2.16.12 libmbedx509.so.0
+    ln -sf libmbedcrypto.so.2.16.12 libmbedcrypto.so.3
+    ln -sf libmbedtls.so.12 libmbedtls.so
+    ```

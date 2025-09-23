@@ -1,6 +1,8 @@
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 

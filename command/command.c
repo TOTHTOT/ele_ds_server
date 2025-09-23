@@ -3,11 +3,7 @@
 #include "../server/server.h"
 #include "../common/common.h"
 #include "../users/users.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 
 
 #define LOG_TAG "command"
